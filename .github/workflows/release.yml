@@ -1,23 +1,25 @@
 name: Release
 
 # Runs when develop is merged into main (main is protected — no direct pushes). Builds, tests, verifies
-# the version isn't already published, packs, tags, and creates the GitHub release. It does NOT push to
-# NuGet — that is nuget-publish.yml, which runs only if this workflow succeeds.
+# the version isn't already published and packs (build job); then publishes a GitHub release as a
+# deployment to the "github-release" environment. NuGet is a separate deployment (nuget-publish.yml)
+# that runs only if this workflow succeeds.
 on:
   push:
     branches: [main]
-
-permissions:
-  contents: write # create the git tag and GitHub release
 
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build, verify, publish to NuGet
+  build:
+    name: Build, test & pack
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -66,8 +68,6 @@ jobs:
       - name: Pack
         run: dotnet pack src/R8.TzDateTime.csproj -c Release --no-build -o ./artifacts
 
-      # The NuGet push lives in a separate workflow (nuget-publish.yml) that runs only when THIS
-      # workflow succeeds. The package is handed over as an artifact.
       - name: Upload package artifact
         uses: actions/upload-artifact@v7
         with:
@@ -75,11 +75,31 @@ jobs:
           path: ./artifacts/*.*nupkg
           if-no-files-found: error
 
+  github-release:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the git tag and GitHub release
+    environment:
+      name: github-release
+      url: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: nuget-package
+          path: ./artifacts
+
       - name: Tag and create GitHub release
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.build.outputs.version }}
           GH_TOKEN: ${{ github.token }}
         run: |
           git tag "v$VERSION"
           git push origin "v$VERSION"
-          gh release create "v$VERSION" --title "v$VERSION" --generate-notes ./artifacts/*.nupkg
+          gh release create "v$VERSION" --title "v$VERSION" --generate-notes ./artifacts/*.*nupkg
