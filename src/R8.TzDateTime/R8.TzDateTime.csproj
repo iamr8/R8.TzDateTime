@@ -1,0 +1,95 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <!-- NuGet package metadata. Version is the source of truth for releases: bump it on develop, and the
+         release workflow publishes it when master is updated. Update RepositoryUrl/Authors if the repo owner differs. -->
+    <PropertyGroup>
+        <Version>1.0.0</Version>
+        <PackageId>R8.TzDateTime</PackageId>
+        <Title>R8.TzDateTime</Title>
+        <Authors>iamr8</Authors>
+        <Company>iamr8</Company>
+        <Description>An immutable, timezone-aware DateTime struct built on NodaTime, with per-timezone calendar systems (e.g. the Persian/Jalali calendar for Asia/Tehran) and cultures. Allocation-free on hot paths and Native-AOT compatible.</Description>
+        <PackageTags>timezone;datetime;nodatime;persian;jalali;calendar;iana;dst;globalization;aot</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Copyright>Copyright © iamr8</Copyright>
+        <PackageProjectUrl>https://github.com/iamr8/R8.TzDateTime</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/iamr8/R8.TzDateTime</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <Deterministic>true</Deterministic>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="../../README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <!-- Native AOT / trimming: net8 gets the full AOT+trim+single-file analyzers; net6 gets trim analysis
+         (the AOT analyzer does not exist before net7). The library builds warning-free under both. -->
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+        <LangVersion>12.0</LangVersion>
+        <IsAotCompatible>true</IsAotCompatible>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'">
+        <LangVersion>10.0</LangVersion>
+        <IsTrimmable>true</IsTrimmable>
+        <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="ErrorProne.NET.CoreAnalyzers" Version="0.7.0-beta.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="ErrorProne.NET.Structs" Version="0.6.1-beta.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Roslynator.Analyzers" Version="4.15.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Roslynator.CodeFixes" Version="4.15.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Meziantou.Analyzer" Version="3.0.117">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+        <PackageReference Include="NodaTime" Version="3.2.5"/>
+        <PackageReference Include="System.Text.Json" Version="8.0.6"/>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+        <PackageReference Include="NodaTime" Version="3.3.2"/>
+        <PackageReference Include="System.Text.Json" Version="10.0.9"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="$(AssemblyName).Tests"/>
+    </ItemGroup>
+
+</Project>

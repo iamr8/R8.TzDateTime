@@ -1,0 +1,50 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0D86237A-0D43-4404-8926-1A1CDB9AAD10}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{311A8C1E-1B9E-45F7-85C6-75A2E10C5454}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarks", "benchmarks", "{DD70B219-BBE3-4B5E-8839-6F75A918129F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{4269B05F-AC01-4C44-8D92-C8E8844169C2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "R8.TzDateTime", "src\R8.TzDateTime\R8.TzDateTime.csproj", "{92E6BD49-D375-4F47-8A55-016530C3E07E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "R8.TzDateTime.Tests", "tests\R8.TzDateTime.Tests\R8.TzDateTime.Tests.csproj", "{814A5494-AB87-49EB-A549-98A74A71E310}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AotSmoke", "samples\AotSmoke\AotSmoke.csproj", "{73B95249-A3C8-4F1F-9F1D-21849A9B4875}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "R8.TzDateTime.Benchmarks", "benchmarks\R8.TzDateTime.Benchmarks\R8.TzDateTime.Benchmarks.csproj", "{A4D0E5B3-F5BB-4743-BA41-808EA0423713}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{92E6BD49-D375-4F47-8A55-016530C3E07E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92E6BD49-D375-4F47-8A55-016530C3E07E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92E6BD49-D375-4F47-8A55-016530C3E07E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92E6BD49-D375-4F47-8A55-016530C3E07E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{814A5494-AB87-49EB-A549-98A74A71E310}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{814A5494-AB87-49EB-A549-98A74A71E310}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{814A5494-AB87-49EB-A549-98A74A71E310}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{814A5494-AB87-49EB-A549-98A74A71E310}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73B95249-A3C8-4F1F-9F1D-21849A9B4875}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73B95249-A3C8-4F1F-9F1D-21849A9B4875}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73B95249-A3C8-4F1F-9F1D-21849A9B4875}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73B95249-A3C8-4F1F-9F1D-21849A9B4875}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4D0E5B3-F5BB-4743-BA41-808EA0423713}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4D0E5B3-F5BB-4743-BA41-808EA0423713}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4D0E5B3-F5BB-4743-BA41-808EA0423713}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4D0E5B3-F5BB-4743-BA41-808EA0423713}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{92E6BD49-D375-4F47-8A55-016530C3E07E} = {0D86237A-0D43-4404-8926-1A1CDB9AAD10}
+		{814A5494-AB87-49EB-A549-98A74A71E310} = {311A8C1E-1B9E-45F7-85C6-75A2E10C5454}
+		{73B95249-A3C8-4F1F-9F1D-21849A9B4875} = {4269B05F-AC01-4C44-8D92-C8E8844169C2}
+		{A4D0E5B3-F5BB-4743-BA41-808EA0423713} = {DD70B219-BBE3-4B5E-8839-6F75A918129F}
+	EndGlobalSection
+EndGlobal

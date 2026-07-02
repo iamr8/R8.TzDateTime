@@ -1,0 +1,39 @@
+version: 2
+updates:
+  # NuGet packages. This project multi-targets net6.0 and net8.0 and pins some packages to a different
+  # major per TFM via conditional <ItemGroup>s (e.g. System.Text.Json 8.x on net6, 10.x on net8).
+  # Dependabot does not see those TFM conditions, so a cross-major bump would try to move the net6 line
+  # onto a net8-only major and raise a false alarm. We therefore allow only patch/minor updates for the
+  # TFM-split packages (which stay framework-compatible) and review major bumps manually.
+  - package-ecosystem: "nuget"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      analyzers:
+        patterns:
+          - "Roslynator*"
+          - "ErrorProne.NET*"
+          - "Meziantou.Analyzer"
+    ignore:
+      - dependency-name: "System.Text.Json"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "NodaTime"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.NET.Test.Sdk"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "xunit"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "xunit.v3"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "xunit.runner.visualstudio"
+        update-types: ["version-update:semver-major"]
+
+  # Keep the GitHub Actions used by the workflows up to date.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"

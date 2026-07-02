@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Minimal Native-AOT smoke test. CI publishes this with PublishAot and runs it to prove the library
+         works in a native binary (including that non-invariant globalization survives). Not part of the
+         solution, so it does not affect `dotnet test`. -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <PublishAot>true</PublishAot>
+        <InvariantGlobalization>false</InvariantGlobalization>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../src/R8.TzDateTime/R8.TzDateTime.csproj" />
+    </ItemGroup>
+
+</Project>

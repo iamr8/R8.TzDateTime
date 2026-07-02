@@ -1,0 +1,74 @@
+# ---------------------------------------------------------------------------
+# .NET build output
+# ---------------------------------------------------------------------------
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+artifacts/
+publish/
+*.user
+*.userosscache
+*.suo
+*.dll
+*.pdb
+*.exe
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+*.binlog
+
+# NuGet
+.nuget/
+packages/
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+
+# Test / coverage results
+[Tt]est[Rr]esult*/
+test-results/
+[Bb]enchmark[Dd]ot[Nn]et.[Aa]rtifacts/
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+*.trx
+
+# Native AOT intermediate output
+*.ilk
+*.map
+
+# ---------------------------------------------------------------------------
+# JetBrains Rider / ReSharper
+# ---------------------------------------------------------------------------
+.idea/
+*.sln.iml
+*.DotSettings.user
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# ---------------------------------------------------------------------------
+# Visual Studio / VS Code
+# ---------------------------------------------------------------------------
+.vs/
+*.vspscc
+*.vssscc
+*.vsp
+*.psess
+*.ncrunch*
+.vscode/
+!.vscode/extensions.json
+
+# ---------------------------------------------------------------------------
+# OS files
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db

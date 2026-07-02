@@ -1,0 +1,78 @@
+name: Release
+
+# Publishing happens when develop is merged into master. master is protected (no direct pushes),
+# so this effectively runs on every accepted release PR.
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write # create the git tag and GitHub release
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, verify, publish to NuGet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # full history so SourceLink embeds correct commit info
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            6.0.x
+            8.0.x
+
+      - name: Read package version from csproj
+        id: version
+        run: |
+          VERSION=$(grep -oPm1 '(?<=<Version>)[^<]+' src/R8.TzDateTime/R8.TzDateTime.csproj)
+          if [ -z "$VERSION" ]; then echo "Could not read <Version> from csproj"; exit 1; fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Package version: $VERSION"
+
+      - name: Guard - fail if this version is already published (bump the version!)
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          PUBLISHED=$(curl -s https://api.nuget.org/v3-flatcontainer/r8.tzdatetime/index.json || true)
+          if echo "$PUBLISHED" | grep -q "\"$VERSION\""; then
+            echo "::error::Version $VERSION is already published to NuGet. Increment <Version> (SemVer) before merging to master."
+            exit 1
+          fi
+          echo "Version $VERSION is new — proceeding."
+
+      - name: Restore
+        run: dotnet restore R8.TzDateTime.sln
+
+      - name: Build (warnings as errors)
+        run: dotnet build R8.TzDateTime.sln -c Release --no-restore -p:TreatWarningsAsErrors=true -p:ContinuousIntegrationBuild=true
+
+      - name: Test net6.0
+        run: dotnet test tests/R8.TzDateTime.Tests/R8.TzDateTime.Tests.csproj -c Release -f net6.0 --no-build
+
+      - name: Test net8.0
+        run: dotnet run --project tests/R8.TzDateTime.Tests/R8.TzDateTime.Tests.csproj -c Release -f net8.0 --no-build
+
+      - name: Pack
+        run: dotnet pack src/R8.TzDateTime/R8.TzDateTime.csproj -c Release --no-build -o ./artifacts
+
+      - name: Push to NuGet
+        run: dotnet nuget push "./artifacts/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+      - name: Tag and create GitHub release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
+          gh release create "v$VERSION" --title "v$VERSION" --generate-notes ./artifacts/*.nupkg
