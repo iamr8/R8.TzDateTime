@@ -26,10 +26,10 @@ R8.TzDateTime is a .NET library (net6.0 + net8.0) providing `TimezoneDateTime` �
 
 ```bash
 dotnet build                                                       # build solution (both TFMs)
-dotnet test tests/R8.TzDateTime.Tests -f net6.0                    # net6 tests (xunit 2.x / VSTest)
-dotnet run  --project tests/R8.TzDateTime.Tests -f net8.0          # net8 tests (xunit.v3 self-runner)
-dotnet run  --project tests/R8.TzDateTime.Tests -f net8.0 -- -trx out.trx           # net8 with a TRX report
-dotnet test tests/R8.TzDateTime.Tests -f net6.0 --filter "FullyQualifiedName~TimezoneTests"   # single class (net6)
+dotnet test tests/R8.TzDateTime.Tests.csproj -f net6.0             # net6 tests (xunit 2.x / VSTest)
+dotnet run  --project tests/R8.TzDateTime.Tests.csproj -f net8.0   # net8 tests (xunit.v3 self-runner)
+dotnet run  --project tests/R8.TzDateTime.Tests.csproj -f net8.0 -- -trx out.trx           # net8 with a TRX report
+dotnet test tests/R8.TzDateTime.Tests.csproj -f net6.0 --filter "FullyQualifiedName~TimezoneTests"   # single class (net6)
 ```
 
 Notes:
@@ -38,7 +38,7 @@ Notes:
 
 ## Architecture
 
-Repo layout: `src/R8.TzDateTime` (library), `tests/R8.TzDateTime.Tests` (xunit, `InternalsVisibleTo`), `benchmarks/R8.TzDateTime.Benchmarks` (BenchmarkDotNet), `samples/AotSmoke` (Native-AOT smoke test). Only the library and tests are in `R8.TzDateTime.sln`; benchmarks and samples build by path. The `.sln` is classic format (not `.slnx`) so the .NET 8 SDK in CI can read it — don't let the IDE convert it.
+Repo layout: each category folder holds its project file directly — `src/R8.TzDateTime.csproj` (library), `tests/R8.TzDateTime.Tests.csproj` (xunit, `InternalsVisibleTo`), `benchmarks/R8.TzDateTime.Benchmarks.csproj` (BenchmarkDotNet), `samples/AotSmoke.csproj` (Native-AOT smoke test). `R8.TzDateTime.sln` includes all four; CI builds the **test project** (not the solution) so the net8-only benchmark/sample can't break the net6 leg. The `.sln` is classic format (not `.slnx`) so the .NET 8 SDK in CI can read it — don't let the IDE convert it.
 
 ### Core value type: `TimezoneDateTime` (TimezoneDateTime.cs)
 
@@ -52,7 +52,7 @@ Flyweight registry backed by static `ConcurrentDictionary`s keyed by IANA id, pl
 
 `LocalTimezone.Current` is the ambient timezone: an `AsyncLocal` scope (`StartScope`/`EndScope`, intended for ASP.NET Core per-request use) layered over a process-wide default resolved from the system timezone (UTC fallback).
 
-Tests register the zones they need via a `[ModuleInitializer]` in `tests/.../TestTimezones.cs` (Tehran/Baghdad/Istanbul), since they are no longer built in.
+Tests register the zones they need via a `[ModuleInitializer]` in `tests/TestTimezones.cs` (Tehran/Baghdad/Istanbul), since they are no longer built in.
 
 ### Performance fast paths (the non-obvious part)
 

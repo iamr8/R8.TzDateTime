@@ -5,31 +5,41 @@
 [![CI](https://github.com/iamr8/R8.TzDateTime/actions/workflows/ci.yml/badge.svg)](https://github.com/iamr8/R8.TzDateTime/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-An immutable, **timezone-agnostic** `DateTime` for .NET, built on [NodaTime](https://nodatime.org). A `TimezoneDateTime` is a UTC instant tagged with a timezone: the stored value is just the instant — agnostic — and only becomes a wall-clock date when you read it through the zone's **calendar** (Gregorian, Persian/Jalali, …) and **culture**. Values are 16 bytes, allocation-free on hot paths, and Native-AOT compatible.
+An immutable, **timezone-agnostic** `DateTime` for .NET, built on [NodaTime](https://nodatime.org). A `TimezoneDateTime`
+is a UTC instant tagged with a timezone: the stored value is just the instant — agnostic — and only becomes a wall-clock
+date when you read it through the zone's **calendar** (Gregorian, Persian/Jalali, …) and **culture**. Values are 16
+bytes, allocation-free on hot paths, and Native-AOT compatible.
 
-Only **UTC is built in**; you register the zones your app needs (culture + calendar are your choice) — see [Timezones are agnostic](#timezones-are-agnostic--you-register-what-you-need).
+Only **UTC is built in**; you register the zones your app needs (culture + calendar are your choice) —
+see [Timezones are agnostic](#timezones-are-agnostic--you-register-what-you-need).
 
 ## Why
 
-`DateTimeOffset` tells you an instant and an offset, but not *which* timezone, and it always speaks the Gregorian calendar. `TimezoneDateTime` keeps the instant timezone-agnostic and resolves the offset, calendar, and culture from the zone you view it through — so the date fields (`Year`, `Month`, `Day`, …) come back right without you converting anything by hand.
+`DateTimeOffset` tells you an instant and an offset, but not *which* timezone, and it always speaks the Gregorian
+calendar. `TimezoneDateTime` keeps the instant timezone-agnostic and resolves the offset, calendar, and culture from the
+zone you view it through — so the date fields (`Year`, `Month`, `Day`, …) come back right without you converting
+anything by hand.
 
 ## Benefits over the alternatives
 
-|  | `DateTime` | `DateTimeOffset` | NodaTime `ZonedDateTime` | **`TimezoneDateTime`** |
-|--|:--:|:--:|:--:|:--:|
-| Knows *which* timezone (not just an offset) | ✗ | ✗ | ✓ | ✓ |
-| Non-Gregorian calendar (e.g. Persian) per zone | ✗ | ✗ | manual | ✓ (per registered zone) |
-| Culture-aware (RTL, first day of week) | ✗ | ✗ | ✗ | ✓ |
-| DST-correct arithmetic & day/week/month boundaries | ✗ | ✗ | ✓ | ✓ |
-| Equal when the instant is equal, across zones | ✗ | ✓ | ✗ | ✓ |
-| Value size | 8 B | 16 B | larger (holds a zone reference) | **16 B** |
-| Allocation-free on hot paths | ✓ | ✓ | mostly | ✓ |
-| Built-in `System.Text.Json` support | ✓ | ✓ | needs a package | ✓ |
-| Native-AOT clean | ✓ | ✓ | ✓ | ✓ |
+|                                                    | `DateTime` | `DateTimeOffset` |    NodaTime `ZonedDateTime`     | **`TimezoneDateTime`**  |
+|----------------------------------------------------|:----------:|:----------------:|:-------------------------------:|:-----------------------:|
+| Knows *which* timezone (not just an offset)        |     ✗      |        ✗         |                ✓                |            ✓            |
+| Non-Gregorian calendar (e.g. Persian) per zone     |     ✗      |        ✗         |             manual              | ✓ (per registered zone) |
+| Culture-aware (RTL, first day of week)             |     ✗      |        ✗         |                ✗                |            ✓            |
+| DST-correct arithmetic & day/week/month boundaries |     ✗      |        ✗         |                ✓                |            ✓            |
+| Equal when the instant is equal, across zones      |     ✗      |        ✓         |                ✗                |            ✓            |
+| Value size                                         |    8 B     |       16 B       | larger (holds a zone reference) |        **16 B**         |
+| Allocation-free on hot paths                       |     ✓      |        ✓         |             mostly              |            ✓            |
+| Built-in `System.Text.Json` support                |     ✓      |        ✓         |         needs a package         |            ✓            |
+| Native-AOT clean                                   |     ✓      |        ✓         |                ✓                |            ✓            |
 
-- **vs `DateTime`** — carries no timezone (only a fragile `Kind`) and is Gregorian-only. `TimezoneDateTime` binds the instant to a real zone and calendar, so reading `.Year`/`.Day` never silently uses the wrong timezone or calendar.
-- **vs `DateTimeOffset`** — an offset is not a timezone: it can't name the zone, and math across a future DST change is wrong because the offset is frozen. `TimezoneDateTime` resolves offsets from the zone at the actual instant.
-- **vs raw NodaTime** — NodaTime gives you the primitives; `TimezoneDateTime` bundles zone + calendar + culture into one 16-byte value with DST-correct helpers, a built-in JSON converter, and allocation-free hot paths.
+- **vs `DateTime`** — carries no timezone (only a fragile `Kind`) and is Gregorian-only. `TimezoneDateTime` binds the
+  instant to a real zone and calendar, so reading `.Year`/`.Day` never silently uses the wrong timezone or calendar.
+- **vs `DateTimeOffset`** — an offset is not a timezone: it can't name the zone, and math across a future DST change is
+  wrong because the offset is frozen. `TimezoneDateTime` resolves offsets from the zone at the actual instant.
+- **vs raw NodaTime** — NodaTime gives you the primitives; `TimezoneDateTime` bundles zone + calendar + culture into one
+  16-byte value with DST-correct helpers, a built-in JSON converter, and allocation-free hot paths.
 
 ## Install
 
@@ -66,14 +76,20 @@ value == value.WithTimezone(istanbul); // true
 
 ## Core ideas
 
-- **The value is timezone-agnostic.** Internally it is just UTC ticks plus a timezone index; the instant is absolute. Equality and comparison are by the instant only — two values at the same moment in different zones are equal.
-- **A zone gives it a calendar and culture.** Reading `.Year`/`.Day`, formatting, and week boundaries all resolve through the zone you registered — so the same instant reads as `1403` in a Persian-calendar zone and `2024` in a Gregorian one.
-- **Wall-clock constructor args are in the zone's calendar.** `new TimezoneDateTime(1403, 1, 1, tehran)` is Nowruz 1403, not a Gregorian date.
+- **The value is timezone-agnostic.** Internally it is just UTC ticks plus a timezone index; the instant is absolute.
+  Equality and comparison are by the instant only — two values at the same moment in different zones are equal.
+- **A zone gives it a calendar and culture.** Reading `.Year`/`.Day`, formatting, and week boundaries all resolve
+  through the zone you registered — so the same instant reads as `1403` in a Persian-calendar zone and `2024` in a
+  Gregorian one.
+- **Wall-clock constructor args are in the zone's calendar.** `new TimezoneDateTime(1403, 1, 1, tehran)` is Nowruz 1403,
+  not a Gregorian date.
 - **Immutable.** Every `Add*`/`GetStartOf*`/`WithTimezone` returns a new value.
 
 ## Timezones are agnostic — you register what you need
 
-Only **UTC** is built in. The library doesn't bake in a zone list; you teach it the zones your app cares about via `AddTimezone`, then values reference them. Registration is a **thread-safe, idempotent** runtime API — call it once at startup (registering the same id again just returns the existing zone).
+Only **UTC** is built in. The library doesn't bake in a zone list; you teach it the zones your app cares about via
+`AddTimezone`, then values reference them. Registration is a **thread-safe, idempotent** runtime API — call it once at
+startup (registering the same id again just returns the existing zone).
 
 ```csharp
 // id + culture + calendar (+ optional aliases the zone also answers to)
@@ -95,9 +111,13 @@ LocalTimezone.Utc;                               // the one built-in zone
 LocalTimezone.Timezones;                         // everything registered so far
 ```
 
-Prefer a class? There are `AddTimezone(LocalTimezoneOptions)` and `AddTimezone<TOptions>()` overloads for subclasses of `LocalTimezoneOptions`.
+Prefer a class? There are `AddTimezone(LocalTimezoneOptions)` and `AddTimezone<TOptions>()` overloads for subclasses of
+`LocalTimezoneOptions`.
 
-> **Why register instead of shipping a big list?** A zone's culture and calendar are *decisions*, not facts: a country maps to several cultures, and tzdb has no notion of which calendar you want to display. Only your app knows that `Asia/Tehran` should render with `fa-IR` and the Persian calendar. Registering keeps that choice explicit and the shipped surface minimal.
+> **Why register instead of shipping a big list?** A zone's culture and calendar are *decisions*, not facts: a country
+> maps to several cultures, and tzdb has no notion of which calendar you want to display. Only your app knows that
+`Asia/Tehran` should render with `fa-IR` and the Persian calendar. Registering keeps that choice explicit and the
+> shipped surface minimal.
 
 ## Usage
 
@@ -138,7 +158,8 @@ value.GetStartOfWeek();  value.GetEndOfWeek();   // week honors the culture's fi
 value.GetStartOfNextDay(); value.GetStartOfNextMonth(); value.GetStartOfNextWeek();
 ```
 
-DST gaps and overlaps are resolved leniently (skipped local times shift forward; ambiguous ones take the earlier offset).
+DST gaps and overlaps are resolved leniently (skipped local times shift forward; ambiguous ones take the earlier
+offset).
 
 ### Formatting
 
@@ -158,7 +179,8 @@ value.Humanize(compareAgainst: someUtcDateTime);
 
 ### Ambient timezone and scopes
 
-`LocalTimezone.Current` is the default timezone for `TimezoneDateTime.Now` (it falls back to UTC when the machine's zone hasn't been registered). In a web app, set it per request with a scope (backed by `AsyncLocal`):
+`LocalTimezone.Current` is the default timezone for `TimezoneDateTime.Now` (it falls back to UTC when the machine's zone
+hasn't been registered). In a web app, set it per request with a scope (backed by `AsyncLocal`):
 
 ```csharp
 LocalTimezone.StartScope(tehran);
@@ -174,7 +196,8 @@ finally
 
 ### JSON
 
-`TimezoneDateTime` serializes with `System.Text.Json` out of the box. The wire format is the **UTC instant** as an ISO-8601 string — the timezone is not part of the payload, so values deserialize in UTC.
+`TimezoneDateTime` serializes with `System.Text.Json` out of the box. The wire format is the **UTC instant** as an
+ISO-8601 string — the timezone is not part of the payload, so values deserialize in UTC.
 
 ```csharp
 var json = JsonSerializer.Serialize(value);          // "2024-03-20T20:30:00Z"
@@ -183,31 +206,38 @@ var back = JsonSerializer.Deserialize<TimezoneDateTime>(json);
 
 ## Performance
 
-Timezone-aware operations vs the BCL `DateTime` + `TimeZoneInfo` equivalent, for a Gregorian zone (`Europe/Istanbul`) so both sides do the same work. BenchmarkDotNet, .NET 8, Apple M-series; lower is better.
+Timezone-aware operations vs the BCL `DateTime` + `TimeZoneInfo` equivalent, for a Gregorian zone (`Europe/Istanbul`) so
+both sides do the same work. BenchmarkDotNet, .NET 8, Apple M-series; lower is better.
 
-| Operation | `DateTime` + `TimeZoneInfo` | `TimezoneDateTime` | Speedup | Allocations |
-|-----------|----------------------------:|-------------------:|:-------:|:-----------:|
-| Convert an instant to a zone and read Y/M/D/H/M | 46.2 ns | **37.7 ns** | ~1.2× | none |
-| Add days (DST-correct) | 113.9 ns | **6.8 ns** | ~17× | none |
-| Start of day in the zone | 118.7 ns | **4.6 ns** | ~26× | none |
-| Format with the zone's culture | 94.8 ns | **58.5 ns** | ~1.6× | 56 B (the string) |
+| Operation                                       | `DateTime` + `TimeZoneInfo` | `TimezoneDateTime` | Speedup |    Allocations    |
+|-------------------------------------------------|----------------------------:|-------------------:|:-------:|:-----------------:|
+| Convert an instant to a zone and read Y/M/D/H/M |                     46.2 ns |        **37.7 ns** |  ~1.2×  |       none        |
+| Add days (DST-correct)                          |                    113.9 ns |         **6.8 ns** |  ~17×   |       none        |
+| Start of day in the zone                        |                    118.7 ns |         **4.6 ns** |  ~26×   |       none        |
+| Format with the zone's culture                  |                     94.8 ns |        **58.5 ns** |  ~1.6×  | 56 B (the string) |
 
-The large gaps on add/start-of-day come from the fast paths: instants past a zone's last DST transition resolve with plain arithmetic instead of a zone-interval lookup, and no round-trip conversion is needed. Reproduce with `dotnet run -c Release --project benchmarks/R8.TzDateTime.Benchmarks`.
+The large gaps on add/start-of-day come from the fast paths: instants past a zone's last DST transition resolve with
+plain arithmetic instead of a zone-interval lookup, and no round-trip conversion is needed. Reproduce with
+`dotnet run -c Release --project benchmarks/R8.TzDateTime.Benchmarks.csproj`.
 
 ## Native AOT & trimming
 
-The library is trim- and Native-AOT-clean and ships with the analyzers enabled (`IsAotCompatible` on net8; trim analysis on net6). Three things to know when publishing AOT:
+The library is trim- and Native-AOT-clean and ships with the analyzers enabled (`IsAotCompatible` on net8; trim analysis
+on net6). Three things to know when publishing AOT:
 
 - **net8.0 only** — `PublishAot` is not available on net6.
-- **Requires non-invariant globalization.** The point rests on cultures like `fa-IR` (Persian calendar, RTL, first-day-of-week). Do **not** set `<InvariantGlobalization>true</InvariantGlobalization>`, or those collapse to the invariant culture.
-- **JSON under AOT** — the converters use no reflection, but as with any type you serialize under AOT, supply a source-generated `JsonSerializerContext`/resolver.
+- **Requires non-invariant globalization.** The point rests on cultures like `fa-IR` (Persian calendar, RTL,
+  first-day-of-week). Do **not** set `<InvariantGlobalization>true</InvariantGlobalization>`, or those collapse to the
+  invariant culture.
+- **JSON under AOT** — the converters use no reflection, but as with any type you serialize under AOT, supply a
+  source-generated `JsonSerializerContext`/resolver.
 
 ## Building & testing
 
 ```bash
 dotnet build                                            # both TFMs
-dotnet test tests/R8.TzDateTime.Tests -f net6.0         # net6 (xunit)
-dotnet run  --project tests/R8.TzDateTime.Tests -f net8.0  # net8 (xunit.v3 self-runner)
+dotnet test tests/R8.TzDateTime.Tests.csproj -f net6.0         # net6 (xunit)
+dotnet run  --project tests/R8.TzDateTime.Tests.csproj -f net8.0  # net8 (xunit.v3 self-runner)
 ```
 
 Repo layout: `src/` (library), `tests/`, `benchmarks/`, `samples/` (Native-AOT smoke test).

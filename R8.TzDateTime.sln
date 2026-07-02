@@ -10,13 +10,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarks", "benchmarks", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{4269B05F-AC01-4C44-8D92-C8E8844169C2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "R8.TzDateTime", "src\R8.TzDateTime\R8.TzDateTime.csproj", "{92E6BD49-D375-4F47-8A55-016530C3E07E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "R8.TzDateTime", "src\R8.TzDateTime.csproj", "{92E6BD49-D375-4F47-8A55-016530C3E07E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "R8.TzDateTime.Tests", "tests\R8.TzDateTime.Tests\R8.TzDateTime.Tests.csproj", "{814A5494-AB87-49EB-A549-98A74A71E310}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "R8.TzDateTime.Tests", "tests\R8.TzDateTime.Tests.csproj", "{814A5494-AB87-49EB-A549-98A74A71E310}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AotSmoke", "samples\AotSmoke\AotSmoke.csproj", "{73B95249-A3C8-4F1F-9F1D-21849A9B4875}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AotSmoke", "samples\AotSmoke.csproj", "{73B95249-A3C8-4F1F-9F1D-21849A9B4875}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "R8.TzDateTime.Benchmarks", "benchmarks\R8.TzDateTime.Benchmarks\R8.TzDateTime.Benchmarks.csproj", "{A4D0E5B3-F5BB-4743-BA41-808EA0423713}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "R8.TzDateTime.Benchmarks", "benchmarks\R8.TzDateTime.Benchmarks.csproj", "{A4D0E5B3-F5BB-4743-BA41-808EA0423713}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
