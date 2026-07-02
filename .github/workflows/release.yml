@@ -1,7 +1,8 @@
 name: Release
 
-# Publishing happens when develop is merged into main. main is protected (no direct pushes),
-# so this effectively runs on every accepted release PR.
+# Runs when develop is merged into main (main is protected — no direct pushes). Builds, tests, verifies
+# the version isn't already published, packs, tags, and creates the GitHub release. It does NOT push to
+# NuGet — that is nuget-publish.yml, which runs only if this workflow succeeds.
 on:
   push:
     branches: [main]
@@ -65,10 +66,14 @@ jobs:
       - name: Pack
         run: dotnet pack src/R8.TzDateTime.csproj -c Release --no-build -o ./artifacts
 
-      - name: Push to NuGet
-        run: dotnet nuget push "./artifacts/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      # The NuGet push lives in a separate workflow (nuget-publish.yml) that runs only when THIS
+      # workflow succeeds. The package is handed over as an artifact.
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-package
+          path: ./artifacts/*.*nupkg
+          if-no-files-found: error
 
       - name: Tag and create GitHub release
         env:
