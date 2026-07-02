@@ -2,13 +2,15 @@ name: Publish to NuGet
 
 # Pushes the package to NuGet ONLY when the Release workflow completed successfully. If Release fails
 # (build, tests, or the already-published version guard), the job's `if` is false and nothing is pushed.
+#
+# Uses NuGet Trusted Publishing (OIDC): no long-lived API key is stored. A short-lived key is minted at
+# push time by exchanging a GitHub OIDC token. Requires, on nuget.org (Account → Trusted Publishing):
+#   Repository Owner: iamr8   Repository: R8.TzDateTime   Workflow File: nuget-publish.yml   Environment: nuget
+# and a NUGET_USER secret set to the nuget.org profile/username (not an email).
 on:
   workflow_run:
     workflows: ["Release"]
     types: [completed]
-
-permissions:
-  contents: read
 
 concurrency:
   group: nuget-publish
@@ -19,6 +21,9 @@ jobs:
     name: Push to NuGet
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
+      id-token: write # mint the GitHub OIDC token for NuGet Trusted Publishing
     environment:
       name: nuget
       url: https://www.nuget.org/packages/R8.TzDateTime
@@ -36,7 +41,14 @@ jobs:
           github-token: ${{ github.token }}
           path: ./artifacts
 
+      # Exchange the OIDC token for a short-lived (1 h) API key immediately before pushing.
+      - name: NuGet login (OIDC → short-lived API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       - name: Push to NuGet
         run: dotnet nuget push "./artifacts/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
