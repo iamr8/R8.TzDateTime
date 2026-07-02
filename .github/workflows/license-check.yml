@@ -38,5 +38,7 @@ jobs:
       - name: Restore
         run: dotnet restore src/R8.TzDateTime.csproj
 
+      # -mapping resolves packages that report a license URL instead of an SPDX id (e.g. ErrorProne.NET,
+      # which is MIT). Analyzers are dev-only (PrivateAssets) and don't ship, but are still resolved here.
       - name: Check licenses against the allowlist
-        run: nuget-license -i src/R8.TzDateTime.csproj -t -a .github/allowed-licenses.json -o jsonPretty
+        run: nuget-license -i src/R8.TzDateTime.csproj -t -a .github/allowed-licenses.json -mapping .github/license-url-mappings.json -o jsonPretty
