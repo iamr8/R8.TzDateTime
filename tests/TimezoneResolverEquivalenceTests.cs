@@ -21,11 +21,13 @@ public class TimezoneResolverEquivalenceTests
 
     public static IEnumerable<object[]> SupportedZoneIds()
     {
-        // Every registered timezone that has transitions to sweep — new registrations are covered automatically.
-        foreach (var timezone in LocalTimezone.Timezones.DistinctBy(t => t.DefaultIanaId).OrderBy(t => t.DefaultIanaId, StringComparer.Ordinal))
+        // A fixed set (not the live, mutable registry) so other tests registering zones can't change the
+        // case count. Only zones that have transitions to sweep are yielded.
+        foreach (var zoneId in TestTimezones.Ids)
         {
+            var timezone = LocalTimezone.GetTimezone(zoneId);
             if (timezone.Clock.Zone.GetZoneInterval(Instant.FromUtc(1970, 1, 1, 0, 0)).HasEnd)
-                yield return new object[] { timezone.DefaultIanaId };
+                yield return new object[] { zoneId };
         }
     }
 

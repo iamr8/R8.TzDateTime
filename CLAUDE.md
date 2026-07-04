@@ -36,6 +36,17 @@ Notes:
 - The two TFMs use different test stacks — net8.0 uses xunit.v3 (a self-running executable; run it with `dotnet run`, not `dotnet test`), net6.0 uses xunit 2.x. See `Usings.cs`. Changes must compile and pass on both.
 - Run tests with the pinned 6.0.x/8.0.x SDK (as CI does). A newer default SDK (e.g. 10) routes `dotnet test` through the new test platform and breaks the net6 VSTest invocation — that's an SDK-default artifact, not a test failure.
 
+## Versioning & release (CI)
+
+SemVer, driven solely by `<Version>` in `src/R8.TzDateTime.csproj`. To cut a release:
+
+1. **Bump `<Version>`** in `src/R8.TzDateTime.csproj` (e.g. `1.0.0` → `1.0.1`) — do this first.
+2. **Commit and push to `develop`.**
+3. Open a PR `develop` → `main`. `main` is protected (no direct pushes); the required checks **Build & test** and **Native AOT smoke test** must pass before it can merge.
+4. **Merging to `main`** runs the Release workflow (`release.yml`). Its `check` job publishes **only if `<Version>` is strictly newer** than the latest on NuGet; otherwise it logs a warning and skips (so workflow-only merges to `main` never publish). On a newer version it tags `vX.Y.Z`, creates the GitHub release (`github-release` environment), and pushes to NuGet via Trusted Publishing/OIDC (`nuget` environment) — see `NuGet/login@v1` + the `NUGET_USER` secret.
+
+Never publish by hand and never push straight to `main`. The nuget.org Trusted Publishing policy must name **Workflow File `release.yml`** and **Environment `nuget`**.
+
 ## Architecture
 
 Repo layout: each category folder holds its project file directly — `src/R8.TzDateTime.csproj` (library), `tests/R8.TzDateTime.Tests.csproj` (xunit, `InternalsVisibleTo`), `benchmarks/R8.TzDateTime.Benchmarks.csproj` (BenchmarkDotNet), `samples/AotSmoke.csproj` (Native-AOT smoke test). `R8.TzDateTime.sln` includes all four; CI builds the **test project** (not the solution) so the net8-only benchmark/sample can't break the net6 leg. The `.sln` is classic format (not `.slnx`) so the .NET 8 SDK in CI can read it — don't let the IDE convert it.
@@ -49,6 +60,12 @@ A `readonly struct` holding only **UTC ticks (`long`) + a timezone index (`ushor
 Flyweight registry backed by static `ConcurrentDictionary`s keyed by IANA id, plus a **volatile** `_byIndex` array for lock-free index → timezone resolution on hot paths. **UTC is the only built-in timezone** (its own type `UtcTimezone`, registered first at index 0 — `default(TimezoneDateTime)`, JSON null, and the UTC fast path all depend on that). Every other zone is registered at runtime via the public **`AddTimezone`** (id + `CultureInfo` + `CalendarSystem` + aliases, an options overload, and a generic subclass overload). Culture/calendar are supplied by the caller — they can't be reliably derived (culture-per-country is ambiguous; tzdb lacks aliases like "Iraq").
 
 `AddTimezone` mutates the registry at runtime, so it is thread-safe by design: writers serialize on `_registrationLock`; the publication order inside the lock is **grow + `Volatile.Write(_byIndex)` first, then `_options.TryAdd` last** (the id-resolvable write is the visibility gate) so a value built from a just-added id can never resolve to an index the lookup table hasn't grown to yet. Reads stay lock-free via the volatile `_byIndex`. If you touch registration, keep `TimezoneConcurrencyTests` green — it guards this. `LocalTimezone.Current` falls back to UTC when the system zone isn't registered (never throws).
+
+Each zone is **also resolvable by its Windows timezone id** (e.g. `"Iran Standard Time"` → `Asia/Tehran`): at registration, `GetWindowsAliases` looks up the zone's Windows id via NodaTime's CLDR `TzdbToWindowsIds` and registers it as an extra `_options`/`_instances` key. So resolution stays a single exact-match lookup (no fallback/hot-path cost); Windows ids are resolution keys only and are **not** added to the public `IanaIds`.
+
+`LocalTimezone.Timezones` returns a **cached read-only snapshot** (`_timezonesView`, a `ReadOnlyCollection` over `_byIndex`) rebuilt only at registration — O(1), zero-allocation per access. Do not revert it to a per-access LINQ projection (`_options.Values.Select(...).Distinct().ToArray()`); that allocates on every read (guarded by `TimezoneDateTimeAllocationTests.Timezones_property_access_should_not_allocate`).
+
+Data-driven tests that need "the registered zones" enumerate the fixed `TestTimezones.Ids`, **not** the live `LocalTimezone.Timezones` — the registry is process-global and mutable, so enumerating it makes case counts non-deterministic (and risks concurrent-modification) once other tests register zones.
 
 `LocalTimezone.Current` is the ambient timezone: an `AsyncLocal` scope (`StartScope`/`EndScope`, intended for ASP.NET Core per-request use) layered over a process-wide default resolved from the system timezone (UTC fallback).
 

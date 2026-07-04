@@ -7,9 +7,8 @@ namespace R8.TzDateTime.Tests;
 /// </summary>
 public class TimezoneConcurrencyTests
 {
-    // All registered timezones — new registrations are covered automatically.
-    private static readonly string[] ZoneIds = LocalTimezone.Timezones
-        .Select(t => t.DefaultIanaId).Distinct(StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal).ToArray();
+    // A fixed set (not the live, mutable registry) so other tests registering zones can't perturb this.
+    private static readonly string[] ZoneIds = TestTimezones.Ids;
 
     [Fact]
     public async Task Scopes_should_be_isolated_between_parallel_async_flows()

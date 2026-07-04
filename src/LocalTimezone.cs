@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -29,11 +30,19 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
     // against whichever array snapshot it observes.
     private static volatile LocalTimezone[] _byIndex = Array.Empty<LocalTimezone>();
 
+    // Cached read-only snapshot of the distinct registered timezones (one per index), rebuilt only when a
+    // timezone is registered. Lets the Timezones property return in O(1) with no per-access allocation.
+    private static volatile ReadOnlyCollection<LocalTimezone> _timezonesView = new(Array.Empty<LocalTimezone>());
+
     // Serializes runtime registrations (AddTimezone). Reads stay lock-free.
     private static readonly object _registrationLock = new();
 
     // The next free index; advanced as timezones are registered.
     private static ushort _nextIndex;
+
+    // CLDR IANA → Windows id map (e.g. "Asia/Tehran" → "Iran Standard Time"). Used at registration to
+    // expose each zone under its Windows id too, so callers can resolve by either id form.
+    private static readonly IReadOnlyDictionary<string, string> _tzdbToWindowsIds = TzdbDateTimeZoneSource.Default.TzdbToWindowsIds;
 
     private static volatile bool _initialized;
 
@@ -85,7 +94,7 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
     /// <summary>
     ///     Gets all configured timezones (one per registered options entry).
     /// </summary>
-    public static IReadOnlyCollection<LocalTimezone> Timezones => _options.Values.Select(x => GetTimezone(x.DefaultIanaId)).ToArray();
+    public static IReadOnlyCollection<LocalTimezone> Timezones => _timezonesView;
 
     /// <summary>Gets the UTC timezone — the only built-in timezone; all others are added via <see cref="AddTimezone(string, CultureInfo, CalendarSystem, string[])" />.</summary>
     public static LocalTimezone Utc => GetTimezone(UtcTimezone.DefaultId);
@@ -189,6 +198,7 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
                 _ = GetTimezone(ianaId);
 
             _byIndex = byIndex;
+            _timezonesView = new ReadOnlyCollection<LocalTimezone>(byIndex);
             _nextIndex = index;
             _initialized = true;
         }
@@ -269,12 +279,18 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
             Array.Copy(_byIndex, grown, _byIndex.Length);
             grown[index] = timezone;
             _byIndex = grown; // volatile publish
+            _timezonesView = new ReadOnlyCollection<LocalTimezone>(grown); // one flyweight per zone, no dups
 
+            var windowsAliases = GetWindowsAliases(options);
             _indices[index] = options;
             foreach (var id in options.IanaIds)
                 _instances.TryAdd(id, timezone);
+            foreach (var win in windowsAliases)
+                _instances.TryAdd(win, timezone);
             foreach (var id in options.IanaIds)
                 _options.TryAdd(id, options); // visibility gate — must be last
+            foreach (var win in windowsAliases)
+                _options.TryAdd(win, options); // Windows-id resolution aliases, behind the same gate
 
             _nextIndex = (ushort)(index + 1);
             return timezone;
@@ -291,6 +307,8 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
             return;
 
         PrimeOptions(options, index);
+        foreach (var win in GetWindowsAliases(options))
+            _options.TryAdd(win, options); // resolve by Windows id too
         _indices.AddOrUpdate(index, options, (_, _) => options);
 
         if (options.DefaultIanaId.Equals(UtcTimezone.DefaultId, StringComparison.Ordinal))
@@ -305,6 +323,28 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
     ///     Assigns the index and primes the clock and cached fast-path fields on the options. All IANA
     ///     aliases of a zone share this one options instance and index.
     /// </summary>
+    /// <summary>
+    ///     Returns the Windows timezone ids (from NodaTime's CLDR mapping) for the zone's IANA ids — e.g.
+    ///     "Iran Standard Time" for "Asia/Tehran". These are registered as extra resolution keys so a zone
+    ///     can be resolved by either its IANA id/aliases or its Windows id; they are not added to the public
+    ///     <see cref="LocalTimezone.IanaIds" />.
+    /// </summary>
+    private static List<string> GetWindowsAliases(LocalTimezoneOptions options)
+    {
+        var windows = new List<string>();
+        foreach (var iana in options.IanaIds)
+        {
+            if (_tzdbToWindowsIds.TryGetValue(iana, out var win)
+                && !string.IsNullOrEmpty(win)
+                && !windows.Contains(win, StringComparer.Ordinal))
+            {
+                windows.Add(win);
+            }
+        }
+
+        return windows;
+    }
+
     private static void PrimeOptions(LocalTimezoneOptions options, ushort index)
     {
         options._index = index;

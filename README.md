@@ -102,14 +102,21 @@ LocalTimezone.AddTimezone("America/New_York", CultureInfo.GetCultureInfo("en-US"
 - **calendar** is any NodaTime `CalendarSystem` (`Gregorian`, `Iso`, `PersianSimple`, …).
 - **aliases** are extra ids the zone also resolves from.
 
-Resolve and check:
+Resolve and check — by IANA id, an alias, **or the Windows timezone id**:
 
 ```csharp
-LocalTimezone.GetTimezone("Asia/Tehran");        // or "Iran"
+LocalTimezone.GetTimezone("Asia/Tehran");        // IANA id
+LocalTimezone.GetTimezone("Iran");               // registered alias
+LocalTimezone.GetTimezone("Iran Standard Time"); // Windows id (auto-mapped from CLDR)
 LocalTimezone.TryGetTimezone("Iran", out var tz);
 LocalTimezone.Utc;                               // the one built-in zone
-LocalTimezone.Timezones;                         // everything registered so far
+LocalTimezone.Timezones;                         // everything registered so far (cached snapshot)
 ```
+
+Each registered zone is also resolvable by its Windows id (e.g. `Iran Standard Time` → `Asia/Tehran`), mapped
+automatically via NodaTime's CLDR data. The Windows id is a resolution alias only — it is not added to `IanaIds`.
+(`"… Daylight Time"` is a localized display name, not an id, so it does not resolve — the Windows id, which covers
+both standard and DST, does.)
 
 Prefer a class? There are `AddTimezone(LocalTimezoneOptions)` and `AddTimezone<TOptions>()` overloads for subclasses of
 `LocalTimezoneOptions`.

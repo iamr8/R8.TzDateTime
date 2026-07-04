@@ -9,6 +9,13 @@ namespace R8.TzDateTime.Tests;
 /// </summary>
 internal static class TestTimezones
 {
+    /// <summary>
+    ///     The fixed set of canonical ids registered here. Data-driven tests enumerate THIS rather than the
+    ///     live <see cref="LocalTimezone.Timezones" />, so other tests that register throwaway zones at
+    ///     runtime cannot perturb their case count (the registry is process-global and mutable).
+    /// </summary>
+    internal static readonly string[] Ids = { "UTC", "Asia/Tehran", "Asia/Baghdad", "Europe/Istanbul" };
+
     [ModuleInitializer]
     internal static void Register()
     {
