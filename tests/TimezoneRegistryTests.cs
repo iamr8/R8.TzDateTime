@@ -1,9 +1,28 @@
+using NodaTime.TimeZones;
 using R8.TzDateTime.TimezoneMappers;
 
 namespace R8.TzDateTime.Tests;
 
 public class TimezoneRegistryTests
 {
+    [Fact]
+    public void Timezone_resolves_by_its_windows_id_as_well_as_its_iana_id()
+    {
+        var tehran = LocalTimezone.GetTimezone("Asia/Tehran"); // registered by TestTimezones
+
+        // Windows id for Asia/Tehran, from NodaTime's CLDR mapping (e.g. "Iran Standard Time").
+        TzdbDateTimeZoneSource.Default.TzdbToWindowsIds.TryGetValue("Asia/Tehran", out var windowsId).Should().BeTrue();
+
+        LocalTimezone.GetTimezone(windowsId!).Should().Be(tehran);
+        LocalTimezone.GetTimezone("Iran Standard Time").Should().Be(tehran); // the user-facing Windows id
+        LocalTimezone.TryGetTimezone("Iran Standard Time", out var byWindows).Should().BeTrue();
+        byWindows!.DefaultIanaId.Should().Be("Asia/Tehran"); // canonical id unchanged
+
+        // The public IanaIds stays the declared IANA set — the Windows id is a resolution alias only.
+        tehran.IanaIds.Should().NotContain("Iran Standard Time");
+    }
+
+
     [Fact]
     public void MappedTimezone_built_from_data_exposes_the_same_metadata_as_a_hand_written_options_class()
     {

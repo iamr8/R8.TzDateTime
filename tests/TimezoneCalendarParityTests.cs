@@ -22,8 +22,8 @@ public class TimezoneCalendarParityTests
             new DateTime(2100, 5, 5, 5, 5, 5, DateTimeKind.Utc), // far future
         };
 
-        // All registered timezones — new registrations are covered automatically.
-        var zoneIds = LocalTimezone.Timezones.Select(t => t.DefaultIanaId).Distinct(StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal);
+        // A fixed set (not the live, mutable registry) so other tests registering zones can't change the case count.
+        var zoneIds = TestTimezones.Ids;
 
         foreach (var zoneId in zoneIds)
         foreach (var instant in instants)

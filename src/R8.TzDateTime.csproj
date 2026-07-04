@@ -10,7 +10,7 @@
     <!-- NuGet package metadata. Version is the source of truth for releases: bump it on develop, and the
          release workflow publishes it when master is updated. Update RepositoryUrl/Authors if the repo owner differs. -->
     <PropertyGroup>
-        <Version>1.0.0</Version>
+        <Version>1.0.1</Version>
         <PackageId>R8.TzDateTime</PackageId>
         <Title>R8.TzDateTime</Title>
         <Authors>iamr8</Authors>

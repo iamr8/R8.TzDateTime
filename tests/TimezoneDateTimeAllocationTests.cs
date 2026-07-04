@@ -94,6 +94,16 @@ public class TimezoneDateTimeAllocationTests
     }
 
     [Fact]
+    public void Timezones_property_access_should_not_allocate()
+    {
+        // The property returns a cached read-only snapshot (rebuilt only at registration), so repeated
+        // reads must not allocate. The previous implementation rebuilt an array (+ HashSet) per access.
+        _ = Tehran; // ensure at least one non-UTC zone is registered
+
+        MeasureAllocations(() => _ = LocalTimezone.Timezones).Should().BeLessThan(MaxAllocatedBytes);
+    }
+
+    [Fact]
     public void Parts_and_GetDateTime_on_zoned_values_should_not_allocate()
     {
         var tzdt = new TimezoneDateTime(1402, 10, 25, 13, 50, 30, Tehran);
