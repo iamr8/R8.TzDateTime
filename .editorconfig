@@ -76,3 +76,14 @@ resharper_place_record_field_attribute_on_same_line          = false
 dotnet_separate_import_directive_groups                      = true
 dotnet_sort_system_directives_first                          = true
 dotnet_style_namespace_match_folder                          = true
+
+# Naming: private fields (instance and static, incl. static readonly) use _camelCase — the established
+# convention across this codebase (_options, _instances, _currentOptions, …). Encodes it so analyzers
+# (Roslyn + ReSharper/InspectCode) accept it instead of defaulting to PascalCase for static readonly.
+dotnet_naming_rule.private_fields_underscore_camel_case.severity = suggestion
+dotnet_naming_rule.private_fields_underscore_camel_case.symbols  = private_fields
+dotnet_naming_rule.private_fields_underscore_camel_case.style    = underscore_camel_case
+dotnet_naming_symbols.private_fields.applicable_kinds            = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities  = private
+dotnet_naming_style.underscore_camel_case.capitalization        = camel_case
+dotnet_naming_style.underscore_camel_case.required_prefix        = _

@@ -14,6 +14,8 @@ Do not write implementation before a failing test exists.
 
 Always verify changes by building the solution and running the tests before claiming done. The build must be completely clean — treat any warning or error (compiler or analyzer, on either TFM) as a failure to fix, not to ignore.
 
+Any concern raised by **GitHub Advanced Security** (CodeQL / code scanning, the `github-advanced-security` bot on a PR) must be **strictly resolved, never dismissed or skipped** — treat these findings like build errors that block the merge, and fix the underlying code.
+
 Changes must be verified against both net6.0 and net8.0. When net8.0 offers improved functionality (APIs, performance) over net6.0, use it conditionally via `#if NET8_0_OR_GREATER` rather than settling for the lowest common denominator on both.
 
 This is a performance-sensitive library. Every addition, refactor, or change must be benchmarked and compared against the baseline before/after. A change must not regress performance, and must not make output flaky or noisy, nor introduce heap allocations on hot paths (the allocation and stress test suites — `TimezoneDateTimeAllocationTests`, `MemoryTests`, `TimezoneStressTests`, `TimezoneConcurrencyTests` — guard this; keep them green).

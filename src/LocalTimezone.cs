@@ -331,18 +331,12 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
     /// </summary>
     private static List<string> GetWindowsAliases(LocalTimezoneOptions options)
     {
-        var windows = new List<string>();
-        foreach (var iana in options.IanaIds)
-        {
-            if (_tzdbToWindowsIds.TryGetValue(iana, out var win)
-                && !string.IsNullOrEmpty(win)
-                && !windows.Contains(win, StringComparer.Ordinal))
-            {
-                windows.Add(win);
-            }
-        }
-
-        return windows;
+        return options.IanaIds
+            .Select(iana => _tzdbToWindowsIds.TryGetValue(iana, out var win) ? win : null)
+            .Where(win => !string.IsNullOrEmpty(win))
+            .Select(win => win!)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
     }
 
     private static void PrimeOptions(LocalTimezoneOptions options, ushort index)
