@@ -13,7 +13,7 @@
     <ItemGroup>
         <!-- Range that stays on the Apache-2.0 line and refuses 8.x, which switched to the commercial
              Xceed license. NuGet picks the highest 7.x; the half-open upper bound blocks the major. -->
-        <PackageReference Include="FluentAssertions" Version="[7.2.2,8.0.0)"/>
+        <PackageReference Include="FluentAssertions" Version="8.10.0"/>
         <PackageReference Include="coverlet.collector" Version="10.0.1">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
