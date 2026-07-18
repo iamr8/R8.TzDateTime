@@ -13,7 +13,7 @@
     <ItemGroup>
         <!-- Range that stays on the Apache-2.0 line and refuses 8.x, which switched to the commercial
              Xceed license. NuGet picks the highest 7.x; the half-open upper bound blocks the major. -->
-        <PackageReference Include="FluentAssertions" Version="[7.2.2,8.0.0)"/>
+        <PackageReference Include="FluentAssertions" Version="[7.2.2,8.0.0)" />
         <PackageReference Include="coverlet.collector" Version="10.0.1">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
@@ -21,21 +21,25 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-        <PackageReference Include="xunit" Version="2.9.3"/>
-        <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+        <PackageReference Include="xunit" Version="2.9.3" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="[2.8.2,3.0.0)">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="[17.13.0,17.14.0)" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-        <PackageReference Include="xunit.v3" Version="3.2.2"/>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0"/>
+        <PackageReference Include="xunit.v3" Version="3.2.2" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\src\R8.TzDateTime.csproj"/>
+        <ProjectReference Include="..\src\R8.TzDateTime.csproj" />
     </ItemGroup>
 
 </Project>
