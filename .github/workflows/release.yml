@@ -65,7 +65,7 @@ jobs:
           fetch-depth: 0 # full history so SourceLink embeds correct commit info
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
             6.0.x
@@ -111,7 +111,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download package artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: nuget-package
           path: ./artifacts
@@ -138,12 +138,12 @@ jobs:
       url: https://www.nuget.org/packages/R8.TzDateTime
     steps:
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
 
       - name: Download package artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: nuget-package
           path: ./artifacts
