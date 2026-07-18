@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-07-18
+
+### Changed
+- Bump dependencies to latest per-TFM (BenchmarkDotNet, ErrorProne.NET, Meziantou.Analyzer, NodaTime, System.Text.Json, Microsoft.NET.Test.Sdk, Microsoft.SourceLink.GitHub) and pin package version ranges on the net6/net8 legs.
+
 ## [1.0.1] - 2026-07-04
 
 ### Added
@@ -25,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `System.Text.Json` converter (UTC ISO-8601 instant wire format; timezone not serialized).
 - Native-AOT- and trim-clean; targets `net6.0` and `net8.0`.
 
-[Unreleased]: https://github.com/iamr8/R8.TzDateTime/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/iamr8/R8.TzDateTime/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/iamr8/R8.TzDateTime/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/iamr8/R8.TzDateTime/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/iamr8/R8.TzDateTime/releases/tag/v1.0.0
