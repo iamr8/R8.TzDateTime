@@ -513,7 +513,7 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
                             : timezone.DefaultIanaId).Replace("_", " "),
                         Timezone = timezone
                     })
-                    .DistinctBy(timezone => timezone.Timezone.DefaultIanaId)
+                    .DistinctBy(timezone => timezone.Timezone.DefaultIanaId, StringComparer.Ordinal)
                     .ToArray();
 
                 var ianaIds = timezones
