@@ -22,17 +22,17 @@ anything by hand.
 
 ## Benefits over the alternatives
 
-|                                                    | `DateTime` | `DateTimeOffset` |    NodaTime `ZonedDateTime`     | **`TimezoneDateTime`**  |
-|----------------------------------------------------|:----------:|:----------------:|:-------------------------------:|:-----------------------:|
-| Knows *which* timezone (not just an offset)        |     ✗      |        ✗         |                ✓                |            ✓            |
-| Non-Gregorian calendar (e.g. Persian) per zone     |     ✗      |        ✗         |             manual              | ✓ (per registered zone) |
-| Culture-aware (RTL, first day of week)             |     ✗      |        ✗         |                ✗                |            ✓            |
-| DST-correct arithmetic & day/week/month boundaries |     ✗      |        ✗         |                ✓                |            ✓            |
-| Equal when the instant is equal, across zones      |     ✗      |        ✓         |                ✗                |            ✓            |
-| Value size                                         |    8 B     |       16 B       | larger (holds a zone reference) |        **16 B**         |
-| Allocation-free on hot paths                       |     ✓      |        ✓         |             mostly              |            ✓            |
-| Built-in `System.Text.Json` support                |     ✓      |        ✓         |         needs a package         |            ✓            |
-| Native-AOT clean                                   |     ✓      |        ✓         |                ✓                |            ✓            |
+|                                                    | `DateTime` | `DateTimeOffset` |    NodaTime `ZonedDateTime`     |  **`TimezoneDateTime`**  |
+|----------------------------------------------------|:----------:|:----------------:|:-------------------------------:|:------------------------:|
+| Knows *which* timezone (not just an offset)        |     ✗     |        ✗        |               ✓                |            ✓            |
+| Non-Gregorian calendar (e.g. Persian) per zone     |     ✗     |        ✗        |             manual              | ✓ (per registered zone) |
+| Culture-aware (RTL, first day of week)             |     ✗     |        ✗        |               ✗                |            ✓            |
+| DST-correct arithmetic & day/week/month boundaries |     ✗     |        ✗        |               ✓                |            ✓            |
+| Equal when the instant is equal, across zones      |     ✗     |        ✓        |               ✗                |            ✓            |
+| Value size                                         |    8 B     |       16 B       | larger (holds a zone reference) |         **16 B**         |
+| Allocation-free on hot paths                       |     ✓     |        ✓        |             mostly              |            ✓            |
+| Built-in `System.Text.Json` support                |     ✓     |        ✓        |         needs a package         |            ✓            |
+| Native-AOT clean                                   |     ✓     |        ✓        |               ✓                |            ✓            |
 
 - **vs `DateTime`** — carries no timezone (only a fragile `Kind`) and is Gregorian-only. `TimezoneDateTime` binds the
   instant to a real zone and calendar, so reading `.Year`/`.Day` never silently uses the wrong timezone or calendar.
@@ -114,8 +114,7 @@ LocalTimezone.Timezones;                         // everything registered so far
 ```
 
 Each registered zone is also resolvable by its Windows id (e.g. `Iran Standard Time` → `Asia/Tehran`), mapped
-automatically via NodaTime's CLDR data. The Windows id is a resolution alias only — it is not added to `IanaIds`.
-(`"… Daylight Time"` is a localized display name, not an id, so it does not resolve — the Windows id, which covers
+automatically via NodaTime's CLDR data. The Windows id is a resolution alias only — it is not added to `IanaIds`. (`"… Daylight Time"` is a localized display name, not an id, so it does not resolve — the Windows id, which covers
 both standard and DST, does.)
 
 Prefer a class? There are `AddTimezone(LocalTimezoneOptions)` and `AddTimezone<TOptions>()` overloads for subclasses of
@@ -123,7 +122,7 @@ Prefer a class? There are `AddTimezone(LocalTimezoneOptions)` and `AddTimezone<T
 
 > **Why register instead of shipping a big list?** A zone's culture and calendar are *decisions*, not facts: a country
 > maps to several cultures, and tzdb has no notion of which calendar you want to display. Only your app knows that
-`Asia/Tehran` should render with `fa-IR` and the Persian calendar. Registering keeps that choice explicit and the
+> `Asia/Tehran` should render with `fa-IR` and the Persian calendar. Registering keeps that choice explicit and the
 > shipped surface minimal.
 
 ## Usage
@@ -183,6 +182,25 @@ value.Humanize();                                    // "2 hours ago", "yesterda
 value.Humanize(maxRelativity: TimeSpan.FromDays(7)); // fall back to a formatted date beyond the window
 value.Humanize(compareAgainst: someUtcDateTime);
 ```
+
+### Localized Humanize
+
+`Humanize` picks the relative phrase from the value's timezone culture by default, so a value in `Asia/Tehran`
+renders in Persian. Pass `culture` to override it, and `localizeDigits: true` to render the numbers with the
+culture's own digits.
+
+```csharp
+var value = new TimezoneDateTime(1403, 9, 10, 12, 0, 0, tehran);
+
+value.Humanize();                              // "49 دقیقه پیش" (timezone culture: fa)
+value.Humanize(culture: CultureInfo.GetCultureInfo("en-US")); // "49 minutes ago"
+value.Humanize(localizeDigits: true);          // "۴۹ دقیقه پیش"
+```
+
+The phrases live in resx files under `src/Localization`, keyed by their English text. English is the neutral
+(built-in) language; `Resources.fa.resx` ships Persian. To add a language, drop a `Resources.<culture>.resx`
+next to them with the same keys. The clock time inside "today at …" / "tomorrow at …" always uses the
+timezone culture, and only the relative phrase follows `culture`.
 
 ### Ambient timezone and scopes
 

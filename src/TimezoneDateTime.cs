@@ -1,8 +1,10 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.TimeZones;
@@ -43,7 +45,7 @@ namespace R8.TzDateTime;
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateTime>, IEquatable<TimezoneDateTime>, IFormattable
 {
-    private const long UnixEpochBclTicks = 621355968000000000; // DateTime.UnixEpoch.Ticks
+    private const long _unixEpochBclTicks = 621355968000000000; // DateTime.UnixEpoch.Ticks
 
     private readonly ushort _timezoneIndex;
 
@@ -245,7 +247,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryGetWallTicks(long utcTicks, LocalTimezone timezone, out long wallTicks)
     {
-        var utcUnixTicks = utcTicks - UnixEpochBclTicks;
+        var utcUnixTicks = utcTicks - _unixEpochBclTicks;
         var offsetTicks = utcUnixTicks >= timezone.FinalIntervalStartUnixTicks
             ? timezone.FinalIntervalOffsetTicks
             : timezone.Clock.Zone.GetUtcOffset(Instant.FromUnixTimeTicks(utcUnixTicks)).Ticks;
@@ -324,7 +326,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// </summary>
     private static long ResolveLenientTicks(long wallTicks, LocalTimezone timezone)
     {
-        var wallUnix = wallTicks - UnixEpochBclTicks;
+        var wallUnix = wallTicks - _unixEpochBclTicks;
         if (wallUnix >= timezone.FinalIntervalSafeWallUnixTicks)
             return wallTicks - timezone.FinalIntervalOffsetTicks;
 
@@ -338,7 +340,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// </summary>
     internal static long ResolveLenientTicksCore(long wallTicks, DateTimeZone zone)
     {
-        var wallUnix = wallTicks - UnixEpochBclTicks;
+        var wallUnix = wallTicks - _unixEpochBclTicks;
         var guess = zone.GetZoneInterval(Instant.FromUnixTimeTicks(wallUnix));
 
         if (WallContains(guess, wallUnix))
@@ -374,7 +376,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// </summary>
     private static long ResolveStartOfDayTicks(long wallMidnightTicks, LocalTimezone timezone)
     {
-        var wallUnix = wallMidnightTicks - UnixEpochBclTicks;
+        var wallUnix = wallMidnightTicks - _unixEpochBclTicks;
         if (wallUnix >= timezone.FinalIntervalSafeWallUnixTicks)
             return wallMidnightTicks - timezone.FinalIntervalOffsetTicks;
 
@@ -388,7 +390,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// </summary>
     internal static long ResolveStartOfDayTicksCore(long wallMidnightTicks, DateTimeZone zone)
     {
-        var wallUnix = wallMidnightTicks - UnixEpochBclTicks;
+        var wallUnix = wallMidnightTicks - _unixEpochBclTicks;
         var guess = zone.GetZoneInterval(Instant.FromUnixTimeTicks(wallUnix));
 
         if (WallContains(guess, wallUnix))
@@ -408,13 +410,13 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
             var earlier = zone.GetZoneInterval(guess.Start.Minus(Duration.Epsilon));
             return WallContains(earlier, wallUnix)
                 ? wallMidnightTicks - earlier.WallOffset.Ticks
-                : guess.Start.ToUnixTimeTicks() + UnixEpochBclTicks; // skipped midnight: first instant after the gap
+                : guess.Start.ToUnixTimeTicks() + _unixEpochBclTicks; // skipped midnight: first instant after the gap
         }
 
         var later = zone.GetZoneInterval(guess.End);
         return WallContains(later, wallUnix)
             ? wallMidnightTicks - later.WallOffset.Ticks
-            : guess.End.ToUnixTimeTicks() + UnixEpochBclTicks; // skipped midnight: first instant after the gap
+            : guess.End.ToUnixTimeTicks() + _unixEpochBclTicks; // skipped midnight: first instant after the gap
     }
 
     /// <summary>
@@ -515,7 +517,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     public TimezoneDateTime GetEndOfMinute()
     {
         if (IsUtc)
-            return new TimezoneDateTime(Ticks - Ticks % TimeSpan.TicksPerMinute + TimeSpan.TicksPerMinute - 1, _timezoneIndex);
+            return new TimezoneDateTime(Ticks - (Ticks % TimeSpan.TicksPerMinute) + TimeSpan.TicksPerMinute - 1, _timezoneIndex);
 
         var timezone = GetLocalTimezone();
         if (TryGetWallTicks(Ticks, timezone, out var wall))
@@ -535,11 +537,11 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     public TimezoneDateTime GetStartOfDay()
     {
         if (IsUtc)
-            return new TimezoneDateTime(Ticks - Ticks % TimeSpan.TicksPerDay, _timezoneIndex);
+            return new TimezoneDateTime(Ticks - (Ticks % TimeSpan.TicksPerDay), _timezoneIndex);
 
         var timezone = GetLocalTimezone();
         if (TryGetWallTicks(Ticks, timezone, out var wall))
-            return new TimezoneDateTime(ResolveStartOfDayTicks(wall - wall % TimeSpan.TicksPerDay, timezone), _timezoneIndex);
+            return new TimezoneDateTime(ResolveStartOfDayTicks(wall - (wall % TimeSpan.TicksPerDay), timezone), _timezoneIndex);
 
         return new TimezoneDateTime(GetTicksFromZonedDateTime(ToZoned().Date.AtStartOfDayInZone(timezone.Clock.Zone)), _timezoneIndex);
     }
@@ -674,11 +676,11 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     public TimezoneDateTime GetStartOfNextWeek()
     {
         if (IsUtc)
-            return new TimezoneDateTime(GetUtcStartOfWeekTicks(Ticks) + 7 * TimeSpan.TicksPerDay, _timezoneIndex);
+            return new TimezoneDateTime(GetUtcStartOfWeekTicks(Ticks) + (7 * TimeSpan.TicksPerDay), _timezoneIndex);
 
         var timezone = GetLocalTimezone();
         if (TryGetWallTicks(Ticks, timezone, out var wall))
-            return new TimezoneDateTime(ResolveStartOfDayTicks(GetWallStartOfWeekTicks(wall, timezone) + 7 * TimeSpan.TicksPerDay, timezone), _timezoneIndex);
+            return new TimezoneDateTime(ResolveStartOfDayTicks(GetWallStartOfWeekTicks(wall, timezone) + (7 * TimeSpan.TicksPerDay), timezone), _timezoneIndex);
 
         var local = ToZoned().LocalDateTime;
         var startOfNextWeekDate = local.Date.PlusDays(7 - GetDaysSinceStartOfWeek(local, timezone));
@@ -702,9 +704,9 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     {
         // UTC values use ISO-8601 weeks (Monday-first). 0001-01-01 is a Monday, so the
         // day number modulo 7 is the distance from the start of the week.
-        var startOfDay = ticks - ticks % TimeSpan.TicksPerDay;
+        var startOfDay = ticks - (ticks % TimeSpan.TicksPerDay);
         var daysSinceMonday = (startOfDay / TimeSpan.TicksPerDay) % 7;
-        return startOfDay - daysSinceMonday * TimeSpan.TicksPerDay;
+        return startOfDay - (daysSinceMonday * TimeSpan.TicksPerDay);
     }
 
     /// <summary>
@@ -722,10 +724,10 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// </summary>
     private static long GetWallStartOfWeekTicks(long wallTicks, LocalTimezone timezone)
     {
-        var midnight = wallTicks - wallTicks % TimeSpan.TicksPerDay;
-        var dayOfWeek = (DayOfWeek)((midnight / TimeSpan.TicksPerDay + 1) % 7); // 0001-01-01 is a Monday
+        var midnight = wallTicks - (wallTicks % TimeSpan.TicksPerDay);
+        var dayOfWeek = (DayOfWeek)(((midnight / TimeSpan.TicksPerDay) + 1) % 7); // 0001-01-01 is a Monday
         var diff = (7 + (dayOfWeek - timezone.Culture.DateTimeFormat.FirstDayOfWeek)) % 7;
-        return midnight - diff * TimeSpan.TicksPerDay;
+        return midnight - (diff * TimeSpan.TicksPerDay);
     }
 
     /// <summary>
@@ -831,7 +833,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
             if (value is > maxDays or < -maxDays)
                 throw new ArgumentOutOfRangeException(nameof(value));
 
-            var target = wall + value * TimeSpan.TicksPerDay;
+            var target = wall + (value * TimeSpan.TicksPerDay);
             if ((ulong)target > (ulong)DateTime.MaxValue.Ticks)
                 throw new ArgumentOutOfRangeException(nameof(value));
 
@@ -913,7 +915,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static long GetTicksFromZonedDateTime(ZonedDateTime zonedDateTime)
     {
-        return zonedDateTime.ToInstant().ToUnixTimeTicks() + UnixEpochBclTicks;
+        return zonedDateTime.ToInstant().ToUnixTimeTicks() + _unixEpochBclTicks;
     }
 
     /// <summary>
@@ -922,7 +924,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ZonedDateTime GetZonedDateTimeFromTicks(long ticks, DateTimeZone zone, CalendarSystem calendar)
     {
-        var currentInstant = Instant.FromUnixTimeTicks(ticks - UnixEpochBclTicks);
+        var currentInstant = Instant.FromUnixTimeTicks(ticks - _unixEpochBclTicks);
         return currentInstant.InZone(zone, calendar);
     }
 
@@ -931,10 +933,12 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     ///     compared against the current UTC time.
     /// </summary>
     /// <param name="format">The format to use when the time is not relative.</param>
+    /// <param name="culture">The culture that selects the localized relative phrase. When null, the value's timezone culture is used.</param>
+    /// <param name="localizeDigits">When true, the digits of the relative phrase are rendered with the culture's native digits.</param>
     /// <returns>A string that represents the current <see cref="TimezoneDateTime" /> instance in a relative time format.</returns>
-    public string Humanize(string format = "G")
+    public string Humanize(string format = "G", CultureInfo? culture = null, bool localizeDigits = false)
     {
-        return Humanize(DateTime.UtcNow, maxRelativity: null, format);
+        return Humanize(DateTime.UtcNow, maxRelativity: null, format, culture, localizeDigits);
     }
 
     /// <summary>
@@ -943,10 +947,12 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// </summary>
     /// <param name="maxRelativity">The maximum time span to consider as relative. If null, all time spans will be considered.</param>
     /// <param name="format">The format to use when the time is not relative.</param>
+    /// <param name="culture">The culture that selects the localized relative phrase. When null, the value's timezone culture is used.</param>
+    /// <param name="localizeDigits">When true, the digits of the relative phrase are rendered with the culture's native digits.</param>
     /// <returns>A string that represents the current <see cref="TimezoneDateTime" /> instance in a relative time format.</returns>
-    public string Humanize(TimeSpan maxRelativity, string format = "G")
+    public string Humanize(TimeSpan maxRelativity, string format = "G", CultureInfo? culture = null, bool localizeDigits = false)
     {
-        return Humanize(DateTime.UtcNow, maxRelativity, format);
+        return Humanize(DateTime.UtcNow, maxRelativity, format, culture, localizeDigits);
     }
 
     /// <summary>
@@ -955,10 +961,12 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// <param name="compareAgainst">A <see cref="TimezoneDateTime" /> object to be compared as the current date and time.</param>
     /// <param name="maxRelativity">The maximum time span to consider as relative. If null, all time spans will be considered.</param>
     /// <param name="format">The format to use when the time is not relative.</param>
+    /// <param name="culture">The culture that selects the localized relative phrase. When null, the value's timezone culture is used.</param>
+    /// <param name="localizeDigits">When true, the digits of the relative phrase are rendered with the culture's native digits.</param>
     /// <returns>A string that represents the current <see cref="TimezoneDateTime" /> instance in a relative time format.</returns>
-    public string Humanize(TimezoneDateTime compareAgainst, TimeSpan? maxRelativity, string format = "G")
+    public string Humanize(TimezoneDateTime compareAgainst, TimeSpan? maxRelativity, string format = "G", CultureInfo? culture = null, bool localizeDigits = false)
     {
-        return Humanize(compareAgainst.GetUtcDateTime(), maxRelativity, format);
+        return Humanize(compareAgainst.GetUtcDateTime(), maxRelativity, format, culture, localizeDigits);
     }
 
     /// <summary>
@@ -967,46 +975,83 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// <param name="compareAgainst">A UTC <see cref="DateTime" /> object to be compared as the current date and time.</param>
     /// <param name="maxRelativity">The maximum time span to consider as relative. If null, all time spans will be considered.</param>
     /// <param name="format">The format to use when the time is not relative.</param>
+    /// <param name="culture">The culture that selects the localized relative phrase. When null, the value's timezone culture is used.</param>
+    /// <param name="localizeDigits">When true, the digits of the relative phrase are rendered with the culture's native digits.</param>
     /// <exception cref="ArgumentException">When <paramref name="compareAgainst" /> is not UTC.</exception>
     /// <returns>A string that represents the current <see cref="TimezoneDateTime" /> instance in a relative time format.</returns>
-    public string Humanize(DateTime compareAgainst, TimeSpan? maxRelativity, string format = "G")
+    public string Humanize(DateTime compareAgainst, TimeSpan? maxRelativity, string format = "G", CultureInfo? culture = null, bool localizeDigits = false)
     {
         if (compareAgainst.Kind != DateTimeKind.Utc)
             throw new ArgumentException("compareAgainst must be UTC", nameof(compareAgainst));
 
+        var resolvedCulture = culture ?? GetLocalTimezone().Culture;
         var comparingTzdt = new TimezoneDateTime(compareAgainst.Ticks, _timezoneIndex);
         var relative = comparingTzdt < this
-            ? HumanizeFuture(this - comparingTzdt, comparingTzdt)
-            : HumanizePast(comparingTzdt, maxRelativity);
+            ? HumanizeFuture(this - comparingTzdt, comparingTzdt, resolvedCulture)
+            : HumanizePast(comparingTzdt, maxRelativity, resolvedCulture);
 
-        return relative ?? ToString(format, null);
+        if (relative == null)
+            return ToString(format, formatProvider: null);
+
+        return localizeDigits ? LocalizeDigits(relative, resolvedCulture) : relative;
+    }
+
+    /// <summary>
+    ///     Returns the localized relative-time string for the given resource key in the given culture,
+    ///     falling back to the key itself when the resource is missing.
+    /// </summary>
+    private static string L(string key, CultureInfo culture)
+    {
+        return Resources.ResourceManager.GetString(key, culture) ?? key;
+    }
+
+    /// <summary>
+    ///     Replaces ASCII digits in the given text with the culture's native digits (e.g. Persian digits).
+    ///     Returns the text unchanged when the culture has no distinct native digits.
+    /// </summary>
+    private static string LocalizeDigits(string text, CultureInfo culture)
+    {
+        var native = culture.NumberFormat.NativeDigits;
+        if (native.Length < 10 || string.Equals(native[0], "0", StringComparison.Ordinal))
+            return text;
+
+        var sb = new StringBuilder(text.Length);
+        foreach (var ch in text)
+        {
+            if (ch is >= '0' and <= '9')
+                sb.Append(native[ch - '0']);
+            else
+                sb.Append(ch);
+        }
+
+        return sb.ToString();
     }
 
     /// <summary>
     ///     Returns the relative phrase for an instant in the future, or null when the gap is too large to
     ///     express relatively (the caller falls back to the formatted value).
     /// </summary>
-    private string? HumanizeFuture(TimeSpan duration, TimezoneDateTime comparingTzdt)
+    private string? HumanizeFuture(TimeSpan duration, TimezoneDateTime comparingTzdt, CultureInfo culture)
     {
         if (duration.TotalSeconds < 60)
-            return "in a few seconds";
+            return L("in a few seconds", culture);
         if (duration.TotalMinutes < 60)
-            return $"in {duration.Minutes} minutes";
+            return string.Format(CultureInfo.InvariantCulture, L("in {0} minutes", culture), duration.Minutes);
         if (duration.TotalHours < 6)
-            return $"in {duration.Hours} hours";
+            return string.Format(CultureInfo.InvariantCulture, L("in {0} hours", culture), duration.Hours);
         if (duration.TotalHours < 24)
         {
             return GetLocalDate() == comparingTzdt.GetLocalDate()
-                ? $"in {duration.Hours} hours"
-                : $"tomorrow at {ToString("hh:mm tt", null)}";
+                ? string.Format(CultureInfo.InvariantCulture, L("in {0} hours", culture), duration.Hours)
+                : string.Format(CultureInfo.InvariantCulture, L("tomorrow at {0}", culture), ToString("hh:mm tt", formatProvider: null));
         }
 
         if (duration.TotalDays < 7)
-            return "soon";
+            return L("soon", culture);
         if (duration.TotalDays < 30)
-            return "next month";
+            return L("next month", culture);
         if (duration.TotalDays < 365)
-            return "in future";
+            return L("in future", culture);
 
         return null;
     }
@@ -1015,44 +1060,44 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     ///     Returns the relative phrase for an instant in the past, or null when the gap exceeds
     ///     <paramref name="maxRelativity" /> or is too large to express relatively.
     /// </summary>
-    private string? HumanizePast(TimezoneDateTime comparingTzdt, TimeSpan? maxRelativity)
+    private string? HumanizePast(TimezoneDateTime comparingTzdt, TimeSpan? maxRelativity, CultureInfo culture)
     {
         var duration = comparingTzdt - this;
         if (maxRelativity != null && !(duration <= maxRelativity))
             return null;
 
-        return HumanizeRecentPast(duration) ?? HumanizeDistantPast(duration, comparingTzdt);
+        return HumanizeRecentPast(duration, culture) ?? HumanizeDistantPast(duration, comparingTzdt, culture);
     }
 
     /// <summary>
     ///     Returns the relative phrase for a past instant within the last twelve hours, or null beyond that.
     /// </summary>
-    private static string? HumanizeRecentPast(TimeSpan duration)
+    private static string? HumanizeRecentPast(TimeSpan duration, CultureInfo culture)
     {
         var seconds = (int)duration.TotalSeconds;
         switch (seconds)
         {
             case <= 30:
-                return "just now";
+                return L("just now", culture);
             case <= 60:
-                return "a few seconds ago";
+                return L("a few seconds ago", culture);
         }
 
         var minutes = (int)duration.TotalMinutes;
         switch (minutes)
         {
             case <= 10:
-                return "a few minutes ago";
+                return L("a few minutes ago", culture);
             case < 60:
-                return $"{minutes} minutes ago";
+                return string.Format(CultureInfo.InvariantCulture, L("{0} minutes ago", culture), minutes);
         }
 
         var hours = (int)duration.TotalHours;
         return hours switch
         {
-            <= 1 => "an hour ago",
-            <= 5 => $"{hours} hours ago",
-            <= 12 => "a few hours ago",
+            <= 1 => L("an hour ago", culture),
+            <= 5 => string.Format(CultureInfo.InvariantCulture, L("{0} hours ago", culture), hours),
+            <= 12 => L("a few hours ago", culture),
             _ => null,
         };
     }
@@ -1061,7 +1106,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     ///     Returns the relative phrase for a past instant a day or more ago, or null when it is more than a
     ///     year in the past.
     /// </summary>
-    private string? HumanizeDistantPast(TimeSpan duration, TimezoneDateTime comparingTzdt)
+    private string? HumanizeDistantPast(TimeSpan duration, TimezoneDateTime comparingTzdt, CultureInfo culture)
     {
         var (currentYear, currentMonth, currentDay) = GetLocalDate();
         var (compareYear, compareMonth, compareDay) = comparingTzdt.GetLocalDate();
@@ -1077,17 +1122,18 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
                     {
                         // The wall-clock time in this value's timezone; never the host machine's timezone.
                         var currentUnspecified = GetDateTime();
+                        var time = ToString(currentUnspecified, "hh:mm tt");
                         return currentYear == compareYear && currentMonth == compareMonth && currentDay == compareDay
-                            ? $"today at {ToString(currentUnspecified, "hh:mm tt")}"
-                            : $"yesterday at {ToString(currentUnspecified, "hh:mm tt")}";
+                            ? string.Format(CultureInfo.InvariantCulture, L("today at {0}", culture), time)
+                            : string.Format(CultureInfo.InvariantCulture, L("yesterday at {0}", culture), time);
                     }
                     case <= 3:
-                        return $"{days} days ago";
+                        return string.Format(CultureInfo.InvariantCulture, L("{0} days ago", culture), days);
                     default:
-                        return "a few days ago";
+                        return L("a few days ago", culture);
                 }
             case 1:
-                return "last week";
+                return L("last week", culture);
         }
 
         var months = currentYear == compareYear
@@ -1096,20 +1142,20 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
         switch (months)
         {
             case < 1:
-                return "a few weeks ago";
+                return L("a few weeks ago", culture);
             case 1:
-                return "last month";
+                return L("last month", culture);
             case <= 12:
             {
                 if (months >= 6 && currentYear == compareYear - 1)
-                    return "last year";
+                    return L("last year", culture);
 
-                return $"{months} months ago";
+                return string.Format(CultureInfo.InvariantCulture, L("{0} months ago", culture), months);
             }
         }
 
         if (currentYear == compareYear - 1)
-            return "last year";
+            return L("last year", culture);
 
         return null;
     }
@@ -1191,7 +1237,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
             return false;
 
         var zone = GetLocalTimezone().Clock.Zone;
-        var instant = Instant.FromUnixTimeTicks(Ticks - UnixEpochBclTicks);
+        var instant = Instant.FromUnixTimeTicks(Ticks - _unixEpochBclTicks);
         var interval = zone.GetZoneInterval(instant);
         return interval.Savings != Offset.Zero;
     }
@@ -1212,7 +1258,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// <param name="format">A standard or custom date and time format string.</param>
     public string ToString(string? format)
     {
-        return ToString(GetDateTime(), format, null);
+        return ToString(GetDateTime(), format, formatProvider: null);
     }
 
     /// <summary>
@@ -1243,12 +1289,13 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
         {
             str = RemoveRlmChar(str);
         }
+
         return str;
     }
 
     private static string RemoveRlmChar(string str)
     {
-        if (!str.Contains('\u200F'))
+        if (!str.Contains('\u200F', StringComparison.Ordinal))
             return str;
 
         Span<char> c = stackalloc char[str.Length];

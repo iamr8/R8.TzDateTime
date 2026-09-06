@@ -2,6 +2,10 @@ namespace R8.TzDateTime.Tests;
 
 public class TimezoneHumanizeTests
 {
+    // The library defaults the relative phrase to the value's timezone culture (Tehran -> Persian).
+    // These tests pin the English phrasing, so they pass the culture explicitly.
+    private static readonly CultureInfo En = CultureInfo.GetCultureInfo("en-US");
+
     /// <summary>
     ///     The Persian AM/PM designator differs between ICU versions (e.g. "قبل‌ازظهر" vs "ق.ظ."), so
     ///     expected strings take it from the runtime culture instead of hard-coding one spelling.
@@ -19,7 +23,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 9, 12, 25, 43, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 11, 9, 23, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be($"yesterday at 12:25 {TehranDesignator(am: false)}");
     }
@@ -31,7 +35,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 10, 12, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 12, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("a few seconds ago");
     }
@@ -43,7 +47,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 10, 12, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 12, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), TimeSpan.FromSeconds(30));
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), TimeSpan.FromSeconds(30), culture: En);
 
         result.Should().Be(dateTime.ToString());
     }
@@ -55,7 +59,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 10, 12, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 12, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), TimeSpan.FromSeconds(60));
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), TimeSpan.FromSeconds(60), culture: En);
 
         result.Should().Be("a few seconds ago");
     }
@@ -67,7 +71,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 10, 11, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 12, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("an hour ago");
     }
@@ -79,7 +83,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 10, 8, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 12, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("4 hours ago");
     }
@@ -91,7 +95,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 10, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 12, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("a few hours ago");
     }
@@ -103,7 +107,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 12, 30, 18, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1404, 1, 1, 1, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("a few hours ago");
     }
@@ -115,7 +119,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 10, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be($"today at 03:58 {TehranDesignator(am: true)}");
     }
@@ -127,7 +131,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 12, 30, 20, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1404, 1, 1, 18, 58, 55, timezone); // Less than one day difference
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be($"yesterday at 08:58 {TehranDesignator(am: false)}");
     }
@@ -139,7 +143,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 12, 30, 13, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1404, 1, 1, 18, 58, 55, timezone); // More than one day difference
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be($"yesterday at 01:58 {TehranDesignator(am: false)}");
     }
@@ -151,7 +155,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 11, 30, 13, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 12, 1, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be($"yesterday at 01:58 {TehranDesignator(am: false)}");
     }
@@ -163,7 +167,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 5, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate, null);
+        var result = dateTime.Humanize(comparerDate, null, culture: En);
 
         result.Should().Be("a few days ago");
     }
@@ -175,7 +179,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 28, 18, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 10, 3, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate, null);
+        var result = dateTime.Humanize(comparerDate, null, culture: En);
 
         result.Should().Be("a few days ago");
     }
@@ -187,7 +191,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1402, 12, 24, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 1, 1, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate, null);
+        var result = dateTime.Humanize(comparerDate, null, culture: En);
 
         result.Should().Be("a few days ago");
     }
@@ -199,7 +203,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 8, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("2 days ago");
     }
@@ -211,7 +215,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 30, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 10, 2, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("2 days ago");
     }
@@ -223,7 +227,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1402, 12, 28, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 1, 1, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("2 days ago");
     }
@@ -235,7 +239,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 3, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("last week");
     }
@@ -247,7 +251,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 28, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 10, 6, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("last week");
     }
@@ -259,7 +263,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1402, 12, 20, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 1, 1, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("last week");
     }
@@ -271,7 +275,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 8, 12, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("last month");
     }
@@ -283,7 +287,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1402, 11, 20, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 1, 1, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("last month");
     }
@@ -295,7 +299,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 7, 12, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("2 months ago");
     }
@@ -307,7 +311,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1402, 7, 12, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("last year");
     }
@@ -319,7 +323,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1402, 11, 12, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 2, 10, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("2 months ago");
     }
@@ -331,7 +335,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1402, 3, 12, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 2, 10, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("last year");
     }
@@ -343,7 +347,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 2, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 30, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("a few weeks ago");
     }
@@ -355,7 +359,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1402, 12, 10, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 1, 1, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("a few weeks ago");
     }
@@ -367,7 +371,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 9, 23, 10, 59, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 0, 0, 0, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("49 minutes ago");
     }
@@ -379,7 +383,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 9, 23, 58, 59, timezone);
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 0, 0, 0, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("a few minutes ago");
     }
@@ -390,7 +394,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 9, 23, 59, 59, LocalTimezone.GetTimezone("Asia/Tehran"));
         var comparerDate = new TimezoneDateTime(1403, 9, 10, 0, 0, 0, LocalTimezone.GetTimezone("Asia/Tehran"));
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("just now");
     }
@@ -401,7 +405,7 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1403, 9, 30, 23, 59, 59, LocalTimezone.GetTimezone("Asia/Tehran"));
         var comparerDate = new TimezoneDateTime(1403, 10, 1, 0, 0, 0, LocalTimezone.GetTimezone("Asia/Tehran"));
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be("just now");
     }
@@ -413,8 +417,85 @@ public class TimezoneHumanizeTests
         var dateTime = new TimezoneDateTime(1401, 11, 20, 3, 58, 20, timezone);
         var comparerDate = new TimezoneDateTime(1403, 1, 1, 18, 58, 55, timezone);
 
-        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
 
         result.Should().Be(dateTime.ToString());
+    }
+
+    // ----------------------------------------------------------------------
+    // Localization: default phrase follows the value's timezone culture
+    // (Asia/Tehran -> fa-IR). Digits stay ASCII unless localizeDigits: true.
+    // ----------------------------------------------------------------------
+
+    [Fact]
+    public void should_localize_to_persian_by_default_for_tehran_timezone()
+    {
+        var timezone = LocalTimezone.GetTimezone("Asia/Tehran");
+        var dateTime = new TimezoneDateTime(1403, 9, 10, 12, 58, 20, timezone);
+        var comparerDate = new TimezoneDateTime(1403, 9, 10, 12, 58, 55, timezone);
+
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+
+        result.Should().Be("چند ثانیه پیش");
+    }
+
+    [Fact]
+    public void should_localize_certain_minutes_ago_to_persian_with_ascii_digits()
+    {
+        var timezone = LocalTimezone.GetTimezone("Asia/Tehran");
+        var dateTime = new TimezoneDateTime(1403, 9, 9, 23, 10, 59, timezone);
+        var comparerDate = new TimezoneDateTime(1403, 9, 10, 0, 0, 0, timezone);
+
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+
+        result.Should().Be("49 دقیقه پیش");
+    }
+
+    [Fact]
+    public void should_localize_digits_to_persian_when_localizeDigits_is_true()
+    {
+        var timezone = LocalTimezone.GetTimezone("Asia/Tehran");
+        var dateTime = new TimezoneDateTime(1403, 9, 9, 23, 10, 59, timezone);
+        var comparerDate = new TimezoneDateTime(1403, 9, 10, 0, 0, 0, timezone);
+
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, localizeDigits: true);
+
+        result.Should().Be("۴۹ دقیقه پیش");
+    }
+
+    [Fact]
+    public void should_localize_today_at_to_persian()
+    {
+        var timezone = LocalTimezone.GetTimezone("Asia/Tehran");
+        var dateTime = new TimezoneDateTime(1403, 9, 10, 3, 58, 20, timezone);
+        var comparerDate = new TimezoneDateTime(1403, 9, 10, 18, 58, 55, timezone);
+
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+
+        result.Should().Be($"امروز ساعت 03:58 {TehranDesignator(am: true)}");
+    }
+
+    [Fact]
+    public void should_localize_last_month_to_persian()
+    {
+        var timezone = LocalTimezone.GetTimezone("Asia/Tehran");
+        var dateTime = new TimezoneDateTime(1403, 8, 12, 3, 58, 20, timezone);
+        var comparerDate = new TimezoneDateTime(1403, 9, 10, 18, 58, 55, timezone);
+
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null);
+
+        result.Should().Be("ماه گذشته");
+    }
+
+    [Fact]
+    public void should_use_explicit_culture_override_over_the_timezone_culture()
+    {
+        var timezone = LocalTimezone.GetTimezone("Asia/Tehran");
+        var dateTime = new TimezoneDateTime(1403, 9, 10, 12, 58, 20, timezone);
+        var comparerDate = new TimezoneDateTime(1403, 9, 10, 12, 58, 55, timezone);
+
+        var result = dateTime.Humanize(comparerDate.GetUtcDateTime(), null, culture: En);
+
+        result.Should().Be("a few seconds ago");
     }
 }

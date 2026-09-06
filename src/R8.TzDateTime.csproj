@@ -5,12 +5,13 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);1591;MA0004,MA0007,MA0134,MA0011</NoWarn>
     </PropertyGroup>
 
     <!-- NuGet package metadata. Version is the source of truth for releases: bump it on develop, and the
          release workflow publishes it when master is updated. Update RepositoryUrl/Authors if the repo owner differs. -->
     <PropertyGroup>
-        <Version>1.0.2</Version>
+        <Version>1.0.3</Version>
         <PackageId>R8.TzDateTime</PackageId>
         <Title>R8.TzDateTime</Title>
         <Authors>iamr8</Authors>
@@ -32,7 +33,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="../README.md" Pack="true" PackagePath="\" />
+        <None Include="../README.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
     <!-- Native AOT / trimming: net8 gets the full AOT+trim+single-file analyzers; net6 gets trim analysis
@@ -57,23 +58,23 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Roslynator.Analyzers" Version="4.15.0">
+        <PackageReference Include="Roslynator.Analyzers" Version="5.0.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Roslynator.CodeFixes" Version="4.15.0">
+        <PackageReference Include="Roslynator.CodeFixes" Version="5.0.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Meziantou.Analyzer" Version="3.0.123">
+        <PackageReference Include="Meziantou.Analyzer" Version="3.0.217">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-        <PackageReference Include="NodaTime" Version="[3.2.5,3.3.0)" />
-        <PackageReference Include="System.Text.Json" Version="[8.0.6,9.0.0)" />
+        <PackageReference Include="NodaTime" Version="[3.2.5,3.3.0)"/>
+        <PackageReference Include="System.Text.Json" Version="[8.0.6,9.0.0)"/>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="[8.0.0,10.0)">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -81,16 +82,31 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-        <PackageReference Include="NodaTime" Version="3.3.3" />
-        <PackageReference Include="System.Text.Json" Version="10.0.10" />
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301">
+        <PackageReference Include="NodaTime" Version="3.3.3"/>
+        <PackageReference Include="System.Text.Json" Version="10.0.11"/>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.400">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+        <InternalsVisibleTo Include="$(AssemblyName).Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Update="Localization\Resources.resx">
+            <Generator>ResXFileCodeGenerator</Generator>
+            <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Update="Localization\Resources.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>Resources.resx</DependentUpon>
+        </Compile>
     </ItemGroup>
 
 </Project>

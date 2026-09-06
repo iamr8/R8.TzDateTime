@@ -8,23 +8,23 @@ namespace R8.TzDateTime;
 /// </summary>
 public abstract class LocalTimezoneOptions : ITimezoneInfo
 {
-    private static readonly Lazy<DayOfWeek[]> UnorderedDaysOfWeek = new(static () => Enum.GetValues<DayOfWeek>(), LazyThreadSafetyMode.ExecutionAndPublication);
+    private static readonly Lazy<DayOfWeek[]> _unorderedDaysOfWeek = new(static () => Enum.GetValues<DayOfWeek>(), LazyThreadSafetyMode.ExecutionAndPublication);
 
     private DayOfWeek[]? _orderedDaysOfWeek;
 
-    internal ushort _index;
+    internal ushort Index;
 
     // Cached description of the zone's final tzdb interval (the one with no end). Instants at or
     // after _finalIntervalStartUnixTicks — and wall times at or after the "safe" threshold, which
     // also clears the last transition's ambiguity window — resolve with plain arithmetic instead of
     // zone-interval lookups. long.MaxValue disables the fast path (zone with perpetual transitions).
-    internal long _finalIntervalStartUnixTicks = long.MaxValue;
-    internal long _finalIntervalOffsetTicks;
-    internal long _finalIntervalSafeWallUnixTicks = long.MaxValue;
+    internal long FinalIntervalStartUnixTicks = long.MaxValue;
+    internal long FinalIntervalOffsetTicks;
+    internal long FinalIntervalSafeWallUnixTicks = long.MaxValue;
 
     // True when the calendar is ISO/Gregorian, whose proleptic year/month arithmetic is identical to
     // BCL DateTime math (years 1-9999) — letting calendar operations skip NodaTime entirely.
-    internal bool _usesGregorianCalendar;
+    internal bool UsesGregorianCalendar;
 
     /// <summary>Gets the calendar system of the timezone (e.g. Persian for Asia/Tehran).</summary>
     public abstract CalendarSystem Calendar { get; }
@@ -37,7 +37,7 @@ public abstract class LocalTimezoneOptions : ITimezoneInfo
             if (_orderedDaysOfWeek != null)
                 return _orderedDaysOfWeek;
 
-            var daysOfWeek = UnorderedDaysOfWeek.Value;
+            var daysOfWeek = _unorderedDaysOfWeek.Value;
             if (daysOfWeek is not { Length: 7 })
                 throw new InvalidOperationException("Days of week are not valid.");
 

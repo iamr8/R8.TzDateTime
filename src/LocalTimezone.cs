@@ -14,7 +14,7 @@ namespace R8.TzDateTime;
 
 /// <summary>
 ///     A configured timezone: its IANA ids, culture, calendar, and clock. Instances are flyweights resolved
-///     from a fixed registry (see <see cref="GetTimezone(string?)" />); the ambient one is
+///     from a fixed registry (see <see cref="GetTimezone(string)" />); the ambient one is
 ///     <see cref="Current" />. Equality and comparison are by canonical IANA id and current UTC offset.
 /// </summary>
 [DebuggerDisplay("{" + nameof(DefaultIanaId) + "}")]
@@ -123,30 +123,30 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
     /// <summary>
     ///     Gets the stable index of this timezone, shared by all of its IANA aliases.
     /// </summary>
-    internal ushort Index => _currentOptions._index;
+    internal ushort Index => _currentOptions.Index;
 
     /// <summary>
     ///     Gets the start (unix ticks) of the zone's final tzdb interval; instants at or after it use a
     ///     constant offset. <see cref="long.MaxValue" /> when the fast path is disabled.
     /// </summary>
-    internal long FinalIntervalStartUnixTicks => _currentOptions._finalIntervalStartUnixTicks;
+    internal long FinalIntervalStartUnixTicks => _currentOptions.FinalIntervalStartUnixTicks;
 
     /// <summary>
     ///     Gets the constant UTC offset (ticks) of the zone's final tzdb interval.
     /// </summary>
-    internal long FinalIntervalOffsetTicks => _currentOptions._finalIntervalOffsetTicks;
+    internal long FinalIntervalOffsetTicks => _currentOptions.FinalIntervalOffsetTicks;
 
     /// <summary>
     ///     Gets the wall-clock threshold (unix ticks) from which local times are guaranteed unambiguous
     ///     inside the final interval — past the last transition and its ambiguity window.
     /// </summary>
-    internal long FinalIntervalSafeWallUnixTicks => _currentOptions._finalIntervalSafeWallUnixTicks;
+    internal long FinalIntervalSafeWallUnixTicks => _currentOptions.FinalIntervalSafeWallUnixTicks;
 
     /// <summary>
     ///     Gets whether the calendar is ISO/Gregorian, allowing calendar arithmetic to use BCL
     ///     <see cref="DateTime" /> math instead of NodaTime.
     /// </summary>
-    internal bool UsesGregorianCalendar => _currentOptions._usesGregorianCalendar;
+    internal bool UsesGregorianCalendar => _currentOptions.UsesGregorianCalendar;
 
     /// <summary>
     /// Gets a value indicating whether the current culture is right-to-left (RTL).
@@ -169,8 +169,10 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
     public int GetDayNumberInWeek(DayOfWeek dayOfWeek)
     {
         for (var i = 0; i < DaysOfWeek.Length; i++)
+        {
             if (DaysOfWeek[i] == dayOfWeek)
                 return i;
+        }
 
         throw new ArgumentOutOfRangeException(nameof(dayOfWeek), "Invalid day of week");
     }
@@ -300,8 +302,10 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
     private static void RegisterUnsafe(LocalTimezoneOptions options, ref ushort index)
     {
         var registered = false;
-        for (var i = 0; i < options.IanaIds.Length; i++)
-            registered |= _options.TryAdd(options.IanaIds[i], options);
+        foreach (var t in options.IanaIds)
+        {
+            registered |= _options.TryAdd(t, options);
+        }
 
         if (!registered)
             return;
@@ -332,7 +336,7 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
     private static List<string> GetWindowsAliases(LocalTimezoneOptions options)
     {
         return options.IanaIds
-            .Select(iana => _tzdbToWindowsIds.TryGetValue(iana, out var win) ? win : null)
+            .Select(iana => _tzdbToWindowsIds.GetValueOrDefault(iana))
             .Where(win => !string.IsNullOrEmpty(win))
             .Select(win => win!)
             .Distinct(StringComparer.Ordinal)
@@ -341,9 +345,9 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
 
     private static void PrimeOptions(LocalTimezoneOptions options, ushort index)
     {
-        options._index = index;
+        options.Index = index;
         options.Clock = SystemClock.Instance.InZone(DateTimeZoneProviders.Tzdb[options.DefaultIanaId], options.Calendar);
-        options._usesGregorianCalendar = options.Calendar == CalendarSystem.Iso || options.Calendar == CalendarSystem.Gregorian;
+        options.UsesGregorianCalendar = options.Calendar == CalendarSystem.Iso || options.Calendar == CalendarSystem.Gregorian;
         CacheFinalIntervalUnsafe(options);
     }
 
@@ -359,18 +363,18 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
             return; // transitions continue indefinitely; the fast path stays disabled
 
         var offsetTicks = finalProbe.WallOffset.Ticks;
-        options._finalIntervalOffsetTicks = offsetTicks;
+        options.FinalIntervalOffsetTicks = offsetTicks;
         if (finalProbe.HasStart)
         {
             var startUnixTicks = finalProbe.Start.ToUnixTimeTicks();
             var previousOffsetTicks = zone.GetZoneInterval(finalProbe.Start.Minus(Duration.Epsilon)).WallOffset.Ticks;
-            options._finalIntervalStartUnixTicks = startUnixTicks;
-            options._finalIntervalSafeWallUnixTicks = startUnixTicks + Math.Max(offsetTicks, previousOffsetTicks);
+            options.FinalIntervalStartUnixTicks = startUnixTicks;
+            options.FinalIntervalSafeWallUnixTicks = startUnixTicks + Math.Max(offsetTicks, previousOffsetTicks);
         }
         else
         {
-            options._finalIntervalStartUnixTicks = long.MinValue;
-            options._finalIntervalSafeWallUnixTicks = long.MinValue;
+            options.FinalIntervalStartUnixTicks = long.MinValue;
+            options.FinalIntervalSafeWallUnixTicks = long.MinValue;
         }
     }
 
@@ -396,7 +400,7 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
     /// <returns>A <see cref="LocalTimezone" /> object</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="ianaId" /> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the timezone is not configured.</exception>
-    public static LocalTimezone GetTimezone(string? ianaId)
+    public static LocalTimezone GetTimezone(string ianaId)
     {
         ArgumentNullException.ThrowIfNull(ianaId);
         if (_instances.TryGetValue(ianaId, out var timezone))
@@ -431,7 +435,7 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
     internal static ushort GetTimezoneIndex(string ianaId)
     {
         if (_options.TryGetValue(ianaId, out var timezone))
-            return timezone._index;
+            return timezone.Index;
 
         throw new KeyNotFoundException($"The timezone '{ianaId}' was not found.");
     }
@@ -508,12 +512,12 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
                 var timezones = groupedTimezones
                     .Select(timezone => new
                     {
-                        DisplayName = (timezone.DefaultIanaId.Contains('/')
+                        DisplayName = (timezone.DefaultIanaId.Contains('/', StringComparison.OrdinalIgnoreCase)
                             ? timezone.DefaultIanaId.Split('/')[1]
-                            : timezone.DefaultIanaId).Replace("_", " "),
+                            : timezone.DefaultIanaId).Replace("_", " ", StringComparison.OrdinalIgnoreCase),
                         Timezone = timezone
                     })
-                    .DistinctBy(timezone => timezone.Timezone.DefaultIanaId)
+                    .DistinctBy(timezone => timezone.Timezone.DefaultIanaId, StringComparer.Ordinal)
                     .ToArray();
 
                 var ianaIds = timezones
@@ -570,10 +574,7 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
     /// <exception cref="FormatException">Thrown for unknown format strings.</exception>
     public string ToString(string? format, IFormatProvider? formatProvider)
     {
-        if (format == null)
-            return ToString();
-
-        if (format.Equals("G", StringComparison.OrdinalIgnoreCase))
+        if (format?.Equals("G", StringComparison.OrdinalIgnoreCase) != false)
             return ToString();
 
         if (format.Equals("N", StringComparison.OrdinalIgnoreCase))
@@ -650,7 +651,7 @@ public sealed class LocalTimezone : ITimezone, IEquatable<LocalTimezone>, ICompa
     }
 
     /// <summary>Resolves an IANA id string to its configured timezone.</summary>
-    public static implicit operator LocalTimezone(string? ianaId)
+    public static implicit operator LocalTimezone(string ianaId)
     {
         return GetTimezone(ianaId);
     }
