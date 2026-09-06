@@ -43,7 +43,7 @@ namespace R8.TzDateTime;
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateTime>, IEquatable<TimezoneDateTime>, IFormattable
 {
-    private const long UnixEpochBclTicks = 621355968000000000; // DateTime.UnixEpoch.Ticks
+    private const long _unixEpochBclTicks = 621355968000000000; // DateTime.UnixEpoch.Ticks
 
     private readonly ushort _timezoneIndex;
 
@@ -245,7 +245,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryGetWallTicks(long utcTicks, LocalTimezone timezone, out long wallTicks)
     {
-        var utcUnixTicks = utcTicks - UnixEpochBclTicks;
+        var utcUnixTicks = utcTicks - _unixEpochBclTicks;
         var offsetTicks = utcUnixTicks >= timezone.FinalIntervalStartUnixTicks
             ? timezone.FinalIntervalOffsetTicks
             : timezone.Clock.Zone.GetUtcOffset(Instant.FromUnixTimeTicks(utcUnixTicks)).Ticks;
@@ -324,7 +324,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// </summary>
     private static long ResolveLenientTicks(long wallTicks, LocalTimezone timezone)
     {
-        var wallUnix = wallTicks - UnixEpochBclTicks;
+        var wallUnix = wallTicks - _unixEpochBclTicks;
         if (wallUnix >= timezone.FinalIntervalSafeWallUnixTicks)
             return wallTicks - timezone.FinalIntervalOffsetTicks;
 
@@ -338,7 +338,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// </summary>
     internal static long ResolveLenientTicksCore(long wallTicks, DateTimeZone zone)
     {
-        var wallUnix = wallTicks - UnixEpochBclTicks;
+        var wallUnix = wallTicks - _unixEpochBclTicks;
         var guess = zone.GetZoneInterval(Instant.FromUnixTimeTicks(wallUnix));
 
         if (WallContains(guess, wallUnix))
@@ -374,7 +374,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// </summary>
     private static long ResolveStartOfDayTicks(long wallMidnightTicks, LocalTimezone timezone)
     {
-        var wallUnix = wallMidnightTicks - UnixEpochBclTicks;
+        var wallUnix = wallMidnightTicks - _unixEpochBclTicks;
         if (wallUnix >= timezone.FinalIntervalSafeWallUnixTicks)
             return wallMidnightTicks - timezone.FinalIntervalOffsetTicks;
 
@@ -388,7 +388,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// </summary>
     internal static long ResolveStartOfDayTicksCore(long wallMidnightTicks, DateTimeZone zone)
     {
-        var wallUnix = wallMidnightTicks - UnixEpochBclTicks;
+        var wallUnix = wallMidnightTicks - _unixEpochBclTicks;
         var guess = zone.GetZoneInterval(Instant.FromUnixTimeTicks(wallUnix));
 
         if (WallContains(guess, wallUnix))
@@ -408,13 +408,13 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
             var earlier = zone.GetZoneInterval(guess.Start.Minus(Duration.Epsilon));
             return WallContains(earlier, wallUnix)
                 ? wallMidnightTicks - earlier.WallOffset.Ticks
-                : guess.Start.ToUnixTimeTicks() + UnixEpochBclTicks; // skipped midnight: first instant after the gap
+                : guess.Start.ToUnixTimeTicks() + _unixEpochBclTicks; // skipped midnight: first instant after the gap
         }
 
         var later = zone.GetZoneInterval(guess.End);
         return WallContains(later, wallUnix)
             ? wallMidnightTicks - later.WallOffset.Ticks
-            : guess.End.ToUnixTimeTicks() + UnixEpochBclTicks; // skipped midnight: first instant after the gap
+            : guess.End.ToUnixTimeTicks() + _unixEpochBclTicks; // skipped midnight: first instant after the gap
     }
 
     /// <summary>
@@ -515,7 +515,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     public TimezoneDateTime GetEndOfMinute()
     {
         if (IsUtc)
-            return new TimezoneDateTime(Ticks - Ticks % TimeSpan.TicksPerMinute + TimeSpan.TicksPerMinute - 1, _timezoneIndex);
+            return new TimezoneDateTime(Ticks - (Ticks % TimeSpan.TicksPerMinute) + TimeSpan.TicksPerMinute - 1, _timezoneIndex);
 
         var timezone = GetLocalTimezone();
         if (TryGetWallTicks(Ticks, timezone, out var wall))
@@ -535,11 +535,11 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     public TimezoneDateTime GetStartOfDay()
     {
         if (IsUtc)
-            return new TimezoneDateTime(Ticks - Ticks % TimeSpan.TicksPerDay, _timezoneIndex);
+            return new TimezoneDateTime(Ticks - (Ticks % TimeSpan.TicksPerDay), _timezoneIndex);
 
         var timezone = GetLocalTimezone();
         if (TryGetWallTicks(Ticks, timezone, out var wall))
-            return new TimezoneDateTime(ResolveStartOfDayTicks(wall - wall % TimeSpan.TicksPerDay, timezone), _timezoneIndex);
+            return new TimezoneDateTime(ResolveStartOfDayTicks(wall - (wall % TimeSpan.TicksPerDay), timezone), _timezoneIndex);
 
         return new TimezoneDateTime(GetTicksFromZonedDateTime(ToZoned().Date.AtStartOfDayInZone(timezone.Clock.Zone)), _timezoneIndex);
     }
@@ -674,11 +674,11 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     public TimezoneDateTime GetStartOfNextWeek()
     {
         if (IsUtc)
-            return new TimezoneDateTime(GetUtcStartOfWeekTicks(Ticks) + 7 * TimeSpan.TicksPerDay, _timezoneIndex);
+            return new TimezoneDateTime(GetUtcStartOfWeekTicks(Ticks) + (7 * TimeSpan.TicksPerDay), _timezoneIndex);
 
         var timezone = GetLocalTimezone();
         if (TryGetWallTicks(Ticks, timezone, out var wall))
-            return new TimezoneDateTime(ResolveStartOfDayTicks(GetWallStartOfWeekTicks(wall, timezone) + 7 * TimeSpan.TicksPerDay, timezone), _timezoneIndex);
+            return new TimezoneDateTime(ResolveStartOfDayTicks(GetWallStartOfWeekTicks(wall, timezone) + (7 * TimeSpan.TicksPerDay), timezone), _timezoneIndex);
 
         var local = ToZoned().LocalDateTime;
         var startOfNextWeekDate = local.Date.PlusDays(7 - GetDaysSinceStartOfWeek(local, timezone));
@@ -702,9 +702,9 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     {
         // UTC values use ISO-8601 weeks (Monday-first). 0001-01-01 is a Monday, so the
         // day number modulo 7 is the distance from the start of the week.
-        var startOfDay = ticks - ticks % TimeSpan.TicksPerDay;
+        var startOfDay = ticks - (ticks % TimeSpan.TicksPerDay);
         var daysSinceMonday = (startOfDay / TimeSpan.TicksPerDay) % 7;
-        return startOfDay - daysSinceMonday * TimeSpan.TicksPerDay;
+        return startOfDay - (daysSinceMonday * TimeSpan.TicksPerDay);
     }
 
     /// <summary>
@@ -722,10 +722,10 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// </summary>
     private static long GetWallStartOfWeekTicks(long wallTicks, LocalTimezone timezone)
     {
-        var midnight = wallTicks - wallTicks % TimeSpan.TicksPerDay;
-        var dayOfWeek = (DayOfWeek)((midnight / TimeSpan.TicksPerDay + 1) % 7); // 0001-01-01 is a Monday
+        var midnight = wallTicks - (wallTicks % TimeSpan.TicksPerDay);
+        var dayOfWeek = (DayOfWeek)(((midnight / TimeSpan.TicksPerDay) + 1) % 7); // 0001-01-01 is a Monday
         var diff = (7 + (dayOfWeek - timezone.Culture.DateTimeFormat.FirstDayOfWeek)) % 7;
-        return midnight - diff * TimeSpan.TicksPerDay;
+        return midnight - (diff * TimeSpan.TicksPerDay);
     }
 
     /// <summary>
@@ -831,7 +831,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
             if (value is > maxDays or < -maxDays)
                 throw new ArgumentOutOfRangeException(nameof(value));
 
-            var target = wall + value * TimeSpan.TicksPerDay;
+            var target = wall + (value * TimeSpan.TicksPerDay);
             if ((ulong)target > (ulong)DateTime.MaxValue.Ticks)
                 throw new ArgumentOutOfRangeException(nameof(value));
 
@@ -913,7 +913,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static long GetTicksFromZonedDateTime(ZonedDateTime zonedDateTime)
     {
-        return zonedDateTime.ToInstant().ToUnixTimeTicks() + UnixEpochBclTicks;
+        return zonedDateTime.ToInstant().ToUnixTimeTicks() + _unixEpochBclTicks;
     }
 
     /// <summary>
@@ -922,7 +922,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ZonedDateTime GetZonedDateTimeFromTicks(long ticks, DateTimeZone zone, CalendarSystem calendar)
     {
-        var currentInstant = Instant.FromUnixTimeTicks(ticks - UnixEpochBclTicks);
+        var currentInstant = Instant.FromUnixTimeTicks(ticks - _unixEpochBclTicks);
         return currentInstant.InZone(zone, calendar);
     }
 
@@ -1191,7 +1191,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
             return false;
 
         var zone = GetLocalTimezone().Clock.Zone;
-        var instant = Instant.FromUnixTimeTicks(Ticks - UnixEpochBclTicks);
+        var instant = Instant.FromUnixTimeTicks(Ticks - _unixEpochBclTicks);
         var interval = zone.GetZoneInterval(instant);
         return interval.Savings != Offset.Zero;
     }
@@ -1212,7 +1212,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// <param name="format">A standard or custom date and time format string.</param>
     public string ToString(string? format)
     {
-        return ToString(GetDateTime(), format, null);
+        return ToString(GetDateTime(), format, formatProvider: null);
     }
 
     /// <summary>
@@ -1243,12 +1243,13 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
         {
             str = RemoveRlmChar(str);
         }
+
         return str;
     }
 
     private static string RemoveRlmChar(string str)
     {
-        if (!str.Contains('\u200F'))
+        if (!str.Contains('\u200F', StringComparison.Ordinal))
             return str;
 
         Span<char> c = stackalloc char[str.Length];
