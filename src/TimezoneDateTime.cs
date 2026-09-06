@@ -1,8 +1,10 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.TimeZones;
@@ -931,10 +933,12 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     ///     compared against the current UTC time.
     /// </summary>
     /// <param name="format">The format to use when the time is not relative.</param>
+    /// <param name="culture">The culture that selects the localized relative phrase. When null, the value's timezone culture is used.</param>
+    /// <param name="localizeDigits">When true, the digits of the relative phrase are rendered with the culture's native digits.</param>
     /// <returns>A string that represents the current <see cref="TimezoneDateTime" /> instance in a relative time format.</returns>
-    public string Humanize(string format = "G")
+    public string Humanize(string format = "G", CultureInfo? culture = null, bool localizeDigits = false)
     {
-        return Humanize(DateTime.UtcNow, maxRelativity: null, format);
+        return Humanize(DateTime.UtcNow, maxRelativity: null, format, culture, localizeDigits);
     }
 
     /// <summary>
@@ -943,10 +947,12 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// </summary>
     /// <param name="maxRelativity">The maximum time span to consider as relative. If null, all time spans will be considered.</param>
     /// <param name="format">The format to use when the time is not relative.</param>
+    /// <param name="culture">The culture that selects the localized relative phrase. When null, the value's timezone culture is used.</param>
+    /// <param name="localizeDigits">When true, the digits of the relative phrase are rendered with the culture's native digits.</param>
     /// <returns>A string that represents the current <see cref="TimezoneDateTime" /> instance in a relative time format.</returns>
-    public string Humanize(TimeSpan maxRelativity, string format = "G")
+    public string Humanize(TimeSpan maxRelativity, string format = "G", CultureInfo? culture = null, bool localizeDigits = false)
     {
-        return Humanize(DateTime.UtcNow, maxRelativity, format);
+        return Humanize(DateTime.UtcNow, maxRelativity, format, culture, localizeDigits);
     }
 
     /// <summary>
@@ -955,10 +961,12 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// <param name="compareAgainst">A <see cref="TimezoneDateTime" /> object to be compared as the current date and time.</param>
     /// <param name="maxRelativity">The maximum time span to consider as relative. If null, all time spans will be considered.</param>
     /// <param name="format">The format to use when the time is not relative.</param>
+    /// <param name="culture">The culture that selects the localized relative phrase. When null, the value's timezone culture is used.</param>
+    /// <param name="localizeDigits">When true, the digits of the relative phrase are rendered with the culture's native digits.</param>
     /// <returns>A string that represents the current <see cref="TimezoneDateTime" /> instance in a relative time format.</returns>
-    public string Humanize(TimezoneDateTime compareAgainst, TimeSpan? maxRelativity, string format = "G")
+    public string Humanize(TimezoneDateTime compareAgainst, TimeSpan? maxRelativity, string format = "G", CultureInfo? culture = null, bool localizeDigits = false)
     {
-        return Humanize(compareAgainst.GetUtcDateTime(), maxRelativity, format);
+        return Humanize(compareAgainst.GetUtcDateTime(), maxRelativity, format, culture, localizeDigits);
     }
 
     /// <summary>
@@ -967,46 +975,83 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     /// <param name="compareAgainst">A UTC <see cref="DateTime" /> object to be compared as the current date and time.</param>
     /// <param name="maxRelativity">The maximum time span to consider as relative. If null, all time spans will be considered.</param>
     /// <param name="format">The format to use when the time is not relative.</param>
+    /// <param name="culture">The culture that selects the localized relative phrase. When null, the value's timezone culture is used.</param>
+    /// <param name="localizeDigits">When true, the digits of the relative phrase are rendered with the culture's native digits.</param>
     /// <exception cref="ArgumentException">When <paramref name="compareAgainst" /> is not UTC.</exception>
     /// <returns>A string that represents the current <see cref="TimezoneDateTime" /> instance in a relative time format.</returns>
-    public string Humanize(DateTime compareAgainst, TimeSpan? maxRelativity, string format = "G")
+    public string Humanize(DateTime compareAgainst, TimeSpan? maxRelativity, string format = "G", CultureInfo? culture = null, bool localizeDigits = false)
     {
         if (compareAgainst.Kind != DateTimeKind.Utc)
             throw new ArgumentException("compareAgainst must be UTC", nameof(compareAgainst));
 
+        var resolvedCulture = culture ?? GetLocalTimezone().Culture;
         var comparingTzdt = new TimezoneDateTime(compareAgainst.Ticks, _timezoneIndex);
         var relative = comparingTzdt < this
-            ? HumanizeFuture(this - comparingTzdt, comparingTzdt)
-            : HumanizePast(comparingTzdt, maxRelativity);
+            ? HumanizeFuture(this - comparingTzdt, comparingTzdt, resolvedCulture)
+            : HumanizePast(comparingTzdt, maxRelativity, resolvedCulture);
 
-        return relative ?? ToString(format, null);
+        if (relative == null)
+            return ToString(format, formatProvider: null);
+
+        return localizeDigits ? LocalizeDigits(relative, resolvedCulture) : relative;
+    }
+
+    /// <summary>
+    ///     Returns the localized relative-time string for the given resource key in the given culture,
+    ///     falling back to the key itself when the resource is missing.
+    /// </summary>
+    private static string L(string key, CultureInfo culture)
+    {
+        return Resources.ResourceManager.GetString(key, culture) ?? key;
+    }
+
+    /// <summary>
+    ///     Replaces ASCII digits in the given text with the culture's native digits (e.g. Persian digits).
+    ///     Returns the text unchanged when the culture has no distinct native digits.
+    /// </summary>
+    private static string LocalizeDigits(string text, CultureInfo culture)
+    {
+        var native = culture.NumberFormat.NativeDigits;
+        if (native.Length < 10 || string.Equals(native[0], "0", StringComparison.Ordinal))
+            return text;
+
+        var sb = new StringBuilder(text.Length);
+        foreach (var ch in text)
+        {
+            if (ch is >= '0' and <= '9')
+                sb.Append(native[ch - '0']);
+            else
+                sb.Append(ch);
+        }
+
+        return sb.ToString();
     }
 
     /// <summary>
     ///     Returns the relative phrase for an instant in the future, or null when the gap is too large to
     ///     express relatively (the caller falls back to the formatted value).
     /// </summary>
-    private string? HumanizeFuture(TimeSpan duration, TimezoneDateTime comparingTzdt)
+    private string? HumanizeFuture(TimeSpan duration, TimezoneDateTime comparingTzdt, CultureInfo culture)
     {
         if (duration.TotalSeconds < 60)
-            return "in a few seconds";
+            return L("in a few seconds", culture);
         if (duration.TotalMinutes < 60)
-            return $"in {duration.Minutes} minutes";
+            return string.Format(CultureInfo.InvariantCulture, L("in {0} minutes", culture), duration.Minutes);
         if (duration.TotalHours < 6)
-            return $"in {duration.Hours} hours";
+            return string.Format(CultureInfo.InvariantCulture, L("in {0} hours", culture), duration.Hours);
         if (duration.TotalHours < 24)
         {
             return GetLocalDate() == comparingTzdt.GetLocalDate()
-                ? $"in {duration.Hours} hours"
-                : $"tomorrow at {ToString("hh:mm tt", null)}";
+                ? string.Format(CultureInfo.InvariantCulture, L("in {0} hours", culture), duration.Hours)
+                : string.Format(CultureInfo.InvariantCulture, L("tomorrow at {0}", culture), ToString("hh:mm tt", formatProvider: null));
         }
 
         if (duration.TotalDays < 7)
-            return "soon";
+            return L("soon", culture);
         if (duration.TotalDays < 30)
-            return "next month";
+            return L("next month", culture);
         if (duration.TotalDays < 365)
-            return "in future";
+            return L("in future", culture);
 
         return null;
     }
@@ -1015,44 +1060,44 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     ///     Returns the relative phrase for an instant in the past, or null when the gap exceeds
     ///     <paramref name="maxRelativity" /> or is too large to express relatively.
     /// </summary>
-    private string? HumanizePast(TimezoneDateTime comparingTzdt, TimeSpan? maxRelativity)
+    private string? HumanizePast(TimezoneDateTime comparingTzdt, TimeSpan? maxRelativity, CultureInfo culture)
     {
         var duration = comparingTzdt - this;
         if (maxRelativity != null && !(duration <= maxRelativity))
             return null;
 
-        return HumanizeRecentPast(duration) ?? HumanizeDistantPast(duration, comparingTzdt);
+        return HumanizeRecentPast(duration, culture) ?? HumanizeDistantPast(duration, comparingTzdt, culture);
     }
 
     /// <summary>
     ///     Returns the relative phrase for a past instant within the last twelve hours, or null beyond that.
     /// </summary>
-    private static string? HumanizeRecentPast(TimeSpan duration)
+    private static string? HumanizeRecentPast(TimeSpan duration, CultureInfo culture)
     {
         var seconds = (int)duration.TotalSeconds;
         switch (seconds)
         {
             case <= 30:
-                return "just now";
+                return L("just now", culture);
             case <= 60:
-                return "a few seconds ago";
+                return L("a few seconds ago", culture);
         }
 
         var minutes = (int)duration.TotalMinutes;
         switch (minutes)
         {
             case <= 10:
-                return "a few minutes ago";
+                return L("a few minutes ago", culture);
             case < 60:
-                return $"{minutes} minutes ago";
+                return string.Format(CultureInfo.InvariantCulture, L("{0} minutes ago", culture), minutes);
         }
 
         var hours = (int)duration.TotalHours;
         return hours switch
         {
-            <= 1 => "an hour ago",
-            <= 5 => $"{hours} hours ago",
-            <= 12 => "a few hours ago",
+            <= 1 => L("an hour ago", culture),
+            <= 5 => string.Format(CultureInfo.InvariantCulture, L("{0} hours ago", culture), hours),
+            <= 12 => L("a few hours ago", culture),
             _ => null,
         };
     }
@@ -1061,7 +1106,7 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
     ///     Returns the relative phrase for a past instant a day or more ago, or null when it is more than a
     ///     year in the past.
     /// </summary>
-    private string? HumanizeDistantPast(TimeSpan duration, TimezoneDateTime comparingTzdt)
+    private string? HumanizeDistantPast(TimeSpan duration, TimezoneDateTime comparingTzdt, CultureInfo culture)
     {
         var (currentYear, currentMonth, currentDay) = GetLocalDate();
         var (compareYear, compareMonth, compareDay) = comparingTzdt.GetLocalDate();
@@ -1077,17 +1122,18 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
                     {
                         // The wall-clock time in this value's timezone; never the host machine's timezone.
                         var currentUnspecified = GetDateTime();
+                        var time = ToString(currentUnspecified, "hh:mm tt");
                         return currentYear == compareYear && currentMonth == compareMonth && currentDay == compareDay
-                            ? $"today at {ToString(currentUnspecified, "hh:mm tt")}"
-                            : $"yesterday at {ToString(currentUnspecified, "hh:mm tt")}";
+                            ? string.Format(CultureInfo.InvariantCulture, L("today at {0}", culture), time)
+                            : string.Format(CultureInfo.InvariantCulture, L("yesterday at {0}", culture), time);
                     }
                     case <= 3:
-                        return $"{days} days ago";
+                        return string.Format(CultureInfo.InvariantCulture, L("{0} days ago", culture), days);
                     default:
-                        return "a few days ago";
+                        return L("a few days ago", culture);
                 }
             case 1:
-                return "last week";
+                return L("last week", culture);
         }
 
         var months = currentYear == compareYear
@@ -1096,20 +1142,20 @@ public readonly struct TimezoneDateTime : IComparable, IComparable<TimezoneDateT
         switch (months)
         {
             case < 1:
-                return "a few weeks ago";
+                return L("a few weeks ago", culture);
             case 1:
-                return "last month";
+                return L("last month", culture);
             case <= 12:
             {
                 if (months >= 6 && currentYear == compareYear - 1)
-                    return "last year";
+                    return L("last year", culture);
 
-                return $"{months} months ago";
+                return string.Format(CultureInfo.InvariantCulture, L("{0} months ago", culture), months);
             }
         }
 
         if (currentYear == compareYear - 1)
-            return "last year";
+            return L("last year", culture);
 
         return null;
     }

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<root>
+    <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+        <xsd:element name="root" msdata:IsDataSet="true">
+
+        </xsd:element>
+    </xsd:schema>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>1.3</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <data name="in a few seconds" xml:space="preserve">
+        <value>in a few seconds</value>
+    </data>
+    <data name="in {0} minutes" xml:space="preserve">
+        <value>in {0} minutes</value>
+    </data>
+    <data name="in {0} hours" xml:space="preserve">
+        <value>in {0} hours</value>
+    </data>
+    <data name="tomorrow at {0}" xml:space="preserve">
+        <value>tomorrow at {0}</value>
+    </data>
+    <data name="soon" xml:space="preserve">
+        <value>soon</value>
+    </data>
+    <data name="next month" xml:space="preserve">
+        <value>next month</value>
+    </data>
+    <data name="in future" xml:space="preserve">
+        <value>in future</value>
+    </data>
+    <data name="just now" xml:space="preserve">
+        <value>just now</value>
+    </data>
+    <data name="a few seconds ago" xml:space="preserve">
+        <value>a few seconds ago</value>
+    </data>
+    <data name="a few minutes ago" xml:space="preserve">
+        <value>a few minutes ago</value>
+    </data>
+    <data name="{0} minutes ago" xml:space="preserve">
+        <value>{0} minutes ago</value>
+    </data>
+    <data name="an hour ago" xml:space="preserve">
+        <value>an hour ago</value>
+    </data>
+    <data name="{0} hours ago" xml:space="preserve">
+        <value>{0} hours ago</value>
+    </data>
+    <data name="a few hours ago" xml:space="preserve">
+        <value>a few hours ago</value>
+    </data>
+    <data name="today at {0}" xml:space="preserve">
+        <value>today at {0}</value>
+    </data>
+    <data name="yesterday at {0}" xml:space="preserve">
+        <value>yesterday at {0}</value>
+    </data>
+    <data name="{0} days ago" xml:space="preserve">
+        <value>{0} days ago</value>
+    </data>
+    <data name="a few days ago" xml:space="preserve">
+        <value>a few days ago</value>
+    </data>
+    <data name="last week" xml:space="preserve">
+        <value>last week</value>
+    </data>
+    <data name="a few weeks ago" xml:space="preserve">
+        <value>a few weeks ago</value>
+    </data>
+    <data name="last month" xml:space="preserve">
+        <value>last month</value>
+    </data>
+    <data name="{0} months ago" xml:space="preserve">
+        <value>{0} months ago</value>
+    </data>
+    <data name="last year" xml:space="preserve">
+        <value>last year</value>
+    </data>
+</root>
